@@ -1,7 +1,5 @@
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 
 //  not understood meaning why we write {
 //   children,
@@ -14,28 +12,18 @@ export default async function PrivateLayout({
   children: React.ReactNode;
 }) {
   return (
-    // why we write section tag here
-    <section className="w-screen h-screen">
+    <section className="min-h-screen">
       <Navbar />
-      {/* what does this classname do? */}
-      <div className="relative grid grid-cols-12">
-        {/* why we write ScrollArea what is this component. What is scrollarea component */}
-        <ScrollArea
-          className={cn(
-            // what does this classname do?
-            "h-[calc(100vh-81px)] col-span-2 border-r border-r-border scroll-smooth"
-          )}
-        >
-          {/* why i cant comment using "//"  here */}
-          {/* check the sidebar  component */}
-          <Sidebar />
-        </ScrollArea>
-        <ScrollArea
-          // what does this classname do?
-          className={cn("col-span-10 h-[calc(100vh-81px)] scroll-smooth")}
-        >
+      <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-4 px-3 pb-4 pt-4 md:grid-cols-[240px_1fr] md:px-5">
+        <aside className="hidden md:block">
+          <div className="sticky top-24 rounded-2xl border border-slate-200 bg-white/80 p-2 shadow-sm backdrop-blur">
+            <Sidebar />
+          </div>
+        </aside>
+
+        <main className="min-h-[calc(100vh-120px)] rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur md:p-6">
           {children}
-        </ScrollArea>
+        </main>
       </div>
     </section>
   );

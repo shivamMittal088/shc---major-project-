@@ -1,46 +1,57 @@
 import { getFiles } from "@/server-actions/get-files.action";
 import FileListItem from "@/components/FileListItem";
 import React from "react";
+import FileUploader from "@/components/FileUploader";
 
 export default async function ShcFiles() {
   const files = await getFiles();
 
   return (
-    <div className="container mx-auto py-4">
-      <table className="min-w-full divide-y divide-gray-200 ">
-        {/* Table Header */}
-        <thead >
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[300px] sticky top-0 bg-white z-10">
-              Name
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 bg-white uppercase tracking-wider sticky top-0  z-10">
-              Date
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-white z-10">
-              Size
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-white z-10">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {files.results.map((file, index) => (
-            <React.Fragment key={file.id}>
-              <FileListItem file={file} />
-              {/* Divider Row */}
-              {index < files.results.length - 1 && (
-                <tr>
-                  <td colSpan={4}>
-                    <hr className="my-2 border-gray-200" />
-                  </td>
-                </tr>
-              )}
-            </React.Fragment>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-4">
+      <header className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900">My Files</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Upload, share, and manage your files from one place.
+        </p>
+      </header>
+
+      <FileUploader />
+
+      {files.results.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-sm text-slate-600">
+          No files yet. Upload your first file using the button above.
+        </div>
+      )}
+
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="w-[320px] px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
+                  Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
+                  Size
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {files.results.map((file) => (
+                <React.Fragment key={file.id}>
+                  <FileListItem file={file} />
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }

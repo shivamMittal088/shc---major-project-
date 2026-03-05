@@ -10,7 +10,6 @@ import { ShcFile } from "@/types/file.type";
 import { toast } from "sonner";
 import { toggleFileVisibility } from "@/server-actions/toggle-file-visibility.action";
 import { Copy, Eye, Lock, Unlock } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "./ui/button";
 
 export default function FileListItem({
@@ -35,58 +34,64 @@ export default function FileListItem({
   }
 
   return (
-    <tr>
+    <tr className="hover:bg-slate-50/70">
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
           <div className="w-8 h-8">
             <FileIcon
               extension={file.extension}
               {...defaultStyles[file.extension]}
             />
           </div>
-          <span className="font-medium text-gray-900">{file.name}</span>
+          <div className="min-w-0">
+            <p className="truncate font-medium text-slate-900">{file.name}</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">.{file.extension || "file"}</p>
+          </div>
         </div>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
         <p>{dayjs(file.updated_at).fromNow()}</p>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">
         <p>{formatBytes(file.size)}</p>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right">
-        <div className="flex justify-end space-x-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <Button
-            className="px-3 py-1 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-colors duration-200 flex items-center text-sm"
+            className="h-8 bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-500"
             onClick={() => {
               navigator.clipboard.writeText(`${location.origin}/share/${file.id}`);
               toast.success("Link copied to clipboard!");
             }}
             size="shc"
           >
-            <Copy className="h-4 w-4 mr-2" />
+            <Copy className="mr-1.5 h-3.5 w-3.5" />
             Copy link
           </Button>
-          <Link href={`share/${file.id}`}>
-            <Button className="px-3 py-1 bg-sky-500 text-white rounded-md hover:bg-sky-600 transition-colors duration-200 flex items-center text-sm" size="shc" >
-              <Eye className="h-4 w-4 mr-2" />
+          <Link href={`/share/${file.id}`}>
+            <Button
+              className="h-8 bg-sky-600 px-3 text-xs font-semibold text-white hover:bg-sky-500"
+              size="shc"
+            >
+              <Eye className="mr-1.5 h-3.5 w-3.5" />
               View
             </Button>
           </Link>
           <Button
             size="shc"
-
-            className={`px-3 py-1 text-sm flex items-center ${isPublic ? "bg-amber-500 hover:bg-amber-600" : "bg-violet-500 hover:bg-violet-600"
-              } text-white transition-colors duration-200 cursor-pointer`}
+            className={`h-8 px-3 text-xs font-semibold text-white ${
+              isPublic ? "bg-amber-500 hover:bg-amber-400" : "bg-slate-700 hover:bg-slate-600"
+            }`}
             onClick={toggleVisibility}
             disabled={isLoading}
           >
             {isPublic ? (
               <>
-                <Unlock className="h-4 w-4 mr-1" /> Public
+                <Unlock className="mr-1.5 h-3.5 w-3.5" /> Public
               </>
             ) : (
               <>
-                <Lock className="h-4 w-4 mr-1" /> Private
+                <Lock className="mr-1.5 h-3.5 w-3.5" /> Private
               </>
             )}
           </Button>

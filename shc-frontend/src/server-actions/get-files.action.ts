@@ -11,5 +11,5 @@ type FilesResponse = {
 };
 
 export async function getFiles() {
-  return (await api.get("api/files")) as FilesResponse;
+  return (await api.get("api/files", "no-store")) as FilesResponse;
 }

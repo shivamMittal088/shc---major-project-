@@ -1,6 +1,5 @@
 import { getMe } from "@/server-actions/get-me.action";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FileIcon, BookOpenIcon, PencilIcon, CalendarIcon, HardDriveIcon, PackageIcon, MailIcon, HashIcon, CreditCardIcon, ClockIcon } from "lucide-react";
@@ -9,55 +8,55 @@ export default async function DashboardPage() {
   const user = await getMe();
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl b min-h-screen">
-      <header className="mb-8 bg-indigo-100 p-6 rounded-lg shadow-sm border-b border-indigo-200">
-        <h1 className="text-3xl font-bold text-indigo-700 mb-2">Welcome, {user.name}</h1>
-        <p className="text-indigo-600">Here&rsquo;s an overview of your account</p>
+    <div className="container mx-auto max-w-7xl p-1 md:p-2">
+      <header className="mb-6 rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-900 to-slate-700 p-6 text-white shadow-sm">
+        <h1 className="mb-1 text-3xl font-bold tracking-tight">Welcome, {user.name}</h1>
+        <p className="text-sm text-slate-200">Here&rsquo;s an overview of your account</p>
       </header>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
-        <Card className="bg-blue-50 border-blue-200 overflow-hidden">
-          <CardHeader className="border-b border-blue-200">
-            <CardTitle className="text-blue-700 flex items-center">
-              <BookOpenIcon className="h-5 w-5 mr-2 text-blue-500" />
+        <Card className="overflow-hidden border-sky-200 bg-sky-50/80">
+          <CardHeader className="border-b border-sky-100">
+            <CardTitle className="flex items-center text-sky-800">
+              <BookOpenIcon className="mr-2 h-5 w-5 text-sky-600" />
               Remaining Reads
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="text-3xl font-bold text-blue-700 mb-2">
+            <div className="mb-2 text-3xl font-bold text-sky-900">
               {user.subscription.today_remaining_reads}/{user.subscription.subscription_plan.max_daily_reads}
             </div>
-            <p className="text-sm text-blue-600">You&rsquo;ve used {user.subscription.subscription_plan.max_daily_reads - user.subscription.today_remaining_reads} reads today</p>
+            <p className="text-sm text-sky-700">You&rsquo;ve used {user.subscription.subscription_plan.max_daily_reads - user.subscription.today_remaining_reads} reads today</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-green-50 border-green-200 overflow-hidden">
-          <CardHeader className="border-b border-green-200">
-            <CardTitle className="text-green-700 flex items-center">
-              <PencilIcon className="h-5 w-5 mr-2 text-green-500" />
+        <Card className="overflow-hidden border-emerald-200 bg-emerald-50/80">
+          <CardHeader className="border-b border-emerald-100">
+            <CardTitle className="flex items-center text-emerald-800">
+              <PencilIcon className="mr-2 h-5 w-5 text-emerald-600" />
               Remaining Writes
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="text-3xl font-bold text-green-700 mb-2">
+            <div className="mb-2 text-3xl font-bold text-emerald-900">
               {user.subscription.today_remaining_writes}/{user.subscription.subscription_plan.max_daily_writes}
             </div>
-            <p className="text-sm text-green-600">You&rsquo;ve used {user.subscription.subscription_plan.max_daily_writes - user.subscription.today_remaining_writes} writes today</p>
+            <p className="text-sm text-emerald-700">You&rsquo;ve used {user.subscription.subscription_plan.max_daily_writes - user.subscription.today_remaining_writes} writes today</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-purple-50 border-purple-200 overflow-hidden">
-          <CardHeader className="border-b border-purple-200">
-            <CardTitle className="text-purple-700 flex items-center">
-              <FileIcon className="h-5 w-5 mr-2 text-purple-500" />
+        <Card className="overflow-hidden border-indigo-200 bg-indigo-50/80">
+          <CardHeader className="border-b border-indigo-100">
+            <CardTitle className="flex items-center text-indigo-800">
+              <FileIcon className="mr-2 h-5 w-5 text-indigo-600" />
               Files
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="text-3xl font-bold text-purple-700 mb-2">
+            <div className="mb-2 text-3xl font-bold text-indigo-900">
               {user.file_count}
             </div>
-            <p className="text-sm text-purple-600">Total files in your account</p>
+            <p className="text-sm text-indigo-700">Total files in your account</p>
           </CardContent>
         </Card>
 
