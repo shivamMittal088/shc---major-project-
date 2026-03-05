@@ -1,4 +1,3 @@
-import "@/app/globals.css";
 export default function PublicLayout({
   children,
 }: {

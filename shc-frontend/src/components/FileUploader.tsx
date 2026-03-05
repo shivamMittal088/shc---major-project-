@@ -79,10 +79,10 @@ export default function FileUploader() {
   };
 
   return (
-    <div className="mb-5 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-sky-50 p-5 shadow-sm md:flex-row md:items-center md:justify-between">
+    <div className="mb-3 flex flex-col gap-3 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-sky-50 px-4 py-3 shadow-sm md:flex-row md:items-center md:justify-between">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-slate-900">Upload File</h2>
-        <p className="text-sm text-slate-600">
+        <h2 className="text-base font-semibold text-slate-900">Upload File</h2>
+        <p className="text-xs text-slate-600">
           Choose a file to upload to your account.
         </p>
       </div>
@@ -98,16 +98,16 @@ export default function FileUploader() {
         <Button
           onClick={handleUploadClick}
           disabled={isUploading}
-          className="h-10 bg-slate-900 px-5 font-semibold hover:bg-slate-800"
+          className="h-8 bg-slate-900 px-3 text-xs font-semibold hover:bg-slate-800"
         >
           {isUploading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
               Uploading...
             </>
           ) : (
             <>
-              <UploadCloud className="mr-2 h-4 w-4" />
+              <UploadCloud className="mr-1.5 h-3.5 w-3.5" />
               Upload
             </>
           )}

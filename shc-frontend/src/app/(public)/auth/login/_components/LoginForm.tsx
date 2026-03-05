@@ -87,7 +87,7 @@ export default function LoginForm() {
                 <FormLabel className="text-base font-semibold">Name</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Aman Sharma"
+                    placeholder="Shivam Mittal"
                     {...field}
                     disabled={otpStatus === "sending" || otpStatus === "sent"}
                     className="focus:outline-none focus:ring-0 focus:border-0"

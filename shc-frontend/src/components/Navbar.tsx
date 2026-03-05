@@ -38,26 +38,30 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-30 border-b border-slate-200 bg-white/85 backdrop-blur">
-      <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center justify-between px-3 md:px-5">
-        <div className="flex items-center gap-3">
+      <div className="mx-auto flex h-14 w-full max-w-[1320px] items-center justify-between px-2 md:px-4">
+        <div className="flex items-center gap-2.5">
           <Link href="/" className="shrink-0">
             <Logo where="navbar" />
           </Link>
-          <div className="hidden h-8 w-px bg-slate-200 md:block" />
-          <h1 className="hidden text-xl font-semibold tracking-tight text-slate-900 md:block">
+          <div className="hidden h-7 w-px bg-slate-200 md:block" />
+          <h1 className="hidden text-lg font-semibold tracking-tight text-slate-900 md:block">
             {getPageTitle(pathname)}
           </h1>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button onClick={handleLogout} variant="outline" className="font-semibold">
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            className="h-8 px-3 text-xs font-semibold"
+          >
             Logout
           </Button>
         </div>
       </div>
 
-      <div className="border-t border-slate-100 px-3 py-2 md:hidden">
-        <div className="grid grid-cols-3 gap-2">
+      <div className="border-t border-slate-100 px-2 py-1.5 md:hidden">
+        <div className="grid grid-cols-3 gap-1.5">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -66,13 +70,13 @@ export default function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
                   isActive
                     ? "bg-slate-900 text-white"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-3.5 w-3.5" />
                 <span>{item.label}</span>
               </Link>
             );
