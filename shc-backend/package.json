@@ -1,0 +1,9 @@
+{
+  "name": "shc-backend",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"if (Test-Path 'C:\\Program Files\\Go\\bin\\go.exe') { & 'C:\\Program Files\\Go\\bin\\go.exe' run ./cmd } else { go run ./cmd }\"",
+    "start": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"if (Test-Path 'C:\\Program Files\\Go\\bin\\go.exe') { & 'C:\\Program Files\\Go\\bin\\go.exe' run ./cmd } else { go run ./cmd }\""
+  }
+}

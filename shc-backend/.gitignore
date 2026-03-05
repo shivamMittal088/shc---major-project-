@@ -1,0 +1,27 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+build/
+go-echo-bootstrap
+
+.vscode/
+debug
+bin
+tmp
+
+*.log
+.Ds_Store
+```
+
+set -a # automatically export all variables
+source .env
+set +a
