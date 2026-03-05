@@ -2,7 +2,6 @@ use async_recursion::async_recursion;
 use serde_json::json;
 use std::io::{Error, ErrorKind};
 
-use crate::consts::SHC_BACKEND_API_BASE_URL;
 use crate::models::{AddFileResponse, RefreshTokenResponse, ShcFile, ShcFileResponse};
 use crate::user_config::UserConfig;
 
@@ -19,8 +18,10 @@ pub struct ApiClient {
 
 impl ApiClient {
     pub fn new(user_config: UserConfig) -> ApiClient {
+        let api_base_url = user_config.get_backend_api_base_url();
+
         ApiClient {
-            api_base_url: SHC_BACKEND_API_BASE_URL.to_string(),
+            api_base_url,
             tried_refreshing_token: false,
             // if we have not assigned anything to user_config then what will be the value of user_config?
             user_config,

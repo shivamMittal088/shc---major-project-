@@ -1,4 +1,11 @@
-pub const SHC_BACKEND_API_BASE_URL: &str = "https://shc-backend-production.up.railway.app";
+pub const SHC_BACKEND_API_BASE_URL_DEFAULT: &str = "https://shc-backend-production.up.railway.app";
+
+pub fn get_shc_backend_api_base_url_from_env() -> Option<String> {
+	std::env::var("SHC_BACKEND_API_BASE_URL")
+		.ok()
+		.map(|url| url.trim().to_string())
+		.filter(|url| !url.is_empty())
+}
 
 // what is the meaning of &str? and what is the meaning of pub?
 // &str -> It’s like pointing to a piece of text without owning it, meaning you can use it, but you can’t modify the original string. ✅

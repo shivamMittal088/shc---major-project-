@@ -248,6 +248,8 @@ DB_PORT=5432
 DB_USER=postgres
 DB_NAME=shc
 DB_PASSWORD=postgres
+SHC_DB_AUTO_MIGRATE=false
+SHC_DB_SEED_PLANS=false
 
 # Redis
 REDIS_URL=redis://localhost:6379/0
@@ -260,8 +262,27 @@ R2_REGION=auto
 R2_BUCKET_NAME=your_bucket_name
 
 # SMTP (OTP email)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_TLS_MODE=starttls
+SMTP_DIAL_TIMEOUT_SECONDS=10
+SMTP_USER=your_smtp_username
+SMTP_FROM_EMAIL=no-reply@example.com
+SMTP_PASSWORD=your_smtp_password
 GOOGLE_APP_PASSWORD=your_google_app_password
+SHC_DEV_SKIP_OTP_EMAIL=false
 ```
+
+`SMTP_PASSWORD` is preferred for generic SMTP providers.
+`GOOGLE_APP_PASSWORD` is still supported for Gmail app-password based auth.
+
+`SMTP_TLS_MODE` supports:
+- `starttls` (default)
+- `tls` (implicit TLS, typically port `465`)
+- `none` (unencrypted; only for trusted local/dev mail servers)
+
+`SHC_DEV_SKIP_OTP_EMAIL=true` is a dev-only escape hatch that skips SMTP and logs OTP in backend console.
+Use it only for local debugging.
 
 > Note: `.env` is auto-loaded by `godotenv/autoload`.
 
@@ -286,15 +307,12 @@ go mod download
 
 This project uses GORM models in `models/`.
 
-Auto-migration lines currently exist in `services/db.service.go` but are commented out.
-Uncomment when needed:
+Schema migration is controlled via env flags:
 
-```go
-Db.AutoMigrate(&models.User{}, &models.File{}, &models.Subscription{}, &models.StripeTransaction{}, &models.SubscriptionPlan{}, &models.Session{})
-SeedPlans(Db)
-```
+- `SHC_DB_AUTO_MIGRATE=true` to run `AutoMigrate` on startup
+- `SHC_DB_SEED_PLANS=true` to seed default plans (only applied when auto-migrate is enabled)
 
-Then run once and comment again if you prefer strict migration control.
+Recommended production setup is keeping both flags `false` and using controlled migration runs.
 
 ### Run server
 

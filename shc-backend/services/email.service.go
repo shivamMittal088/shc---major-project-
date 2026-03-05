@@ -2,11 +2,16 @@ package services
 
 import (
 	"bytes"
+	"crypto/tls"
 	"errors"
+	"fmt"
 	"html/template"
+	"net"
 	"net/smtp"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type smtpServer struct {
@@ -19,48 +24,179 @@ func (s *smtpServer) Address() string {
 }
 
 type EmailService struct {
-	smtpServer *smtpServer
+	smtpServer  *smtpServer
+	tlsMode     string
+	dialTimeout time.Duration
 }
 
-type loginAuth struct {
-	username string
-	password string
+const (
+	tlsModeStartTLS = "starttls"
+	tlsModeImplicit = "tls"
+	tlsModeNone     = "none"
+)
+
+func getEnvOrDefault(key string, fallback string) string {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+
+	return value
 }
 
-func (a *loginAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
-	if !server.TLS {
-		return "", nil, errors.New("unencrypted connection")
+func getDialTimeout() time.Duration {
+	secondsRaw := strings.TrimSpace(os.Getenv("SMTP_DIAL_TIMEOUT_SECONDS"))
+	if secondsRaw == "" {
+		return 10 * time.Second
 	}
 
-	if server.Name != "smtp.gmail.com" {
-		return "", nil, errors.New("wrong host name")
+	seconds, err := strconv.Atoi(secondsRaw)
+	if err != nil || seconds <= 0 {
+		return 10 * time.Second
 	}
 
-	return "LOGIN", []byte(a.username), nil
+	return time.Duration(seconds) * time.Second
 }
 
-func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
-	if !more {
-		return nil, nil
+func normalizeTLSMode(mode string, port string) string {
+	mode = strings.ToLower(strings.TrimSpace(mode))
+	if mode == "" {
+		if strings.TrimSpace(port) == "465" {
+			return tlsModeImplicit
+		}
+
+		return tlsModeStartTLS
 	}
 
-	prompt := strings.ToLower(string(fromServer))
-	if strings.Contains(prompt, "username") {
-		return []byte(a.username), nil
+	switch mode {
+	case tlsModeStartTLS, tlsModeImplicit, tlsModeNone:
+		return mode
+	default:
+		return tlsModeStartTLS
 	}
-
-	if strings.Contains(prompt, "password") {
-		return []byte(a.password), nil
-	}
-
-	return nil, errors.New("unknown server challenge")
 }
 
 func NewEmailService() *EmailService {
+	host := getEnvOrDefault("SMTP_HOST", "smtp.gmail.com")
+	port := getEnvOrDefault("SMTP_PORT", "587")
+	tlsMode := normalizeTLSMode(os.Getenv("SMTP_TLS_MODE"), port)
+
 	return &EmailService{
 		smtpServer: &smtpServer{
-			host: "smtp.gmail.com", port: "587",
+			host: host,
+			port: port,
 		},
+		tlsMode:     tlsMode,
+		dialTimeout: getDialTimeout(),
+	}
+}
+
+func (es *EmailService) sendMessage(client *smtp.Client, from string, to []string, msg []byte) error {
+	if err := client.Mail(from); err != nil {
+		return err
+	}
+
+	for _, receiver := range to {
+		if err := client.Rcpt(receiver); err != nil {
+			return err
+		}
+	}
+
+	writer, err := client.Data()
+	if err != nil {
+		return err
+	}
+
+	if _, err = writer.Write(msg); err != nil {
+		writer.Close()
+		return err
+	}
+
+	if err = writer.Close(); err != nil {
+		return err
+	}
+
+	return client.Quit()
+}
+
+func (es *EmailService) sendWithImplicitTLS(auth smtp.Auth, from string, to []string, msg []byte) error {
+	tlsConfig := &tls.Config{ServerName: es.smtpServer.host, MinVersion: tls.VersionTLS12}
+	dialer := &net.Dialer{Timeout: es.dialTimeout}
+
+	conn, err := tls.DialWithDialer(dialer, "tcp", es.smtpServer.Address(), tlsConfig)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	client, err := smtp.NewClient(conn, es.smtpServer.host)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	if auth != nil {
+		authSupported, _ := client.Extension("AUTH")
+		if !authSupported {
+			return errors.New("smtp server does not support AUTH")
+		}
+
+		if err = client.Auth(auth); err != nil {
+			return err
+		}
+	}
+
+	return es.sendMessage(client, from, to, msg)
+}
+
+func (es *EmailService) sendWithSMTP(auth smtp.Auth, from string, to []string, msg []byte) error {
+	dialer := &net.Dialer{Timeout: es.dialTimeout}
+	conn, err := dialer.Dial("tcp", es.smtpServer.Address())
+	if err != nil {
+		return err
+	}
+
+	client, err := smtp.NewClient(conn, es.smtpServer.host)
+	if err != nil {
+		conn.Close()
+		return err
+	}
+	defer client.Close()
+
+	if es.tlsMode == tlsModeStartTLS {
+		startTLSSupported, _ := client.Extension("STARTTLS")
+		if !startTLSSupported {
+			return errors.New("smtp server does not support STARTTLS")
+		}
+
+		tlsConfig := &tls.Config{ServerName: es.smtpServer.host, MinVersion: tls.VersionTLS12}
+		if err = client.StartTLS(tlsConfig); err != nil {
+			return err
+		}
+	}
+
+	if auth != nil {
+		authSupported, _ := client.Extension("AUTH")
+		if !authSupported {
+			return errors.New("smtp server does not support AUTH")
+		}
+
+		if err = client.Auth(auth); err != nil {
+			return err
+		}
+	}
+
+	return es.sendMessage(client, from, to, msg)
+}
+
+func (es *EmailService) sendMail(auth smtp.Auth, from string, to []string, msg []byte) error {
+	switch es.tlsMode {
+	case tlsModeImplicit:
+		return es.sendWithImplicitTLS(auth, from, to, msg)
+	case tlsModeStartTLS, tlsModeNone:
+		return es.sendWithSMTP(auth, from, to, msg)
+	default:
+		return fmt.Errorf("unsupported smtp tls mode: %s", es.tlsMode)
 	}
 }
 
@@ -73,9 +209,6 @@ func (es *EmailService) SendEmail(
 	if from == "" {
 		from = os.Getenv("SMTP_USER")
 	}
-	if from == "" {
-		from = "arl0817osho@gmail.com"
-	}
 
 	username := os.Getenv("SMTP_USER")
 	if username == "" {
@@ -83,11 +216,19 @@ func (es *EmailService) SendEmail(
 	}
 
 	password := os.Getenv("GOOGLE_APP_PASSWORD")
-	if username == "" || password == "" {
-		return errors.New("smtp credentials missing: set SMTP_USER and GOOGLE_APP_PASSWORD in .env")
+	if password == "" {
+		password = os.Getenv("SMTP_PASSWORD")
 	}
 
-	auth := &loginAuth{username: username, password: password}
+	if from == "" {
+		return errors.New("smtp sender missing: set SMTP_FROM_EMAIL or SMTP_USER")
+	}
+
+	if username == "" || password == "" {
+		return errors.New("smtp credentials missing: set SMTP_USER and SMTP_PASSWORD or GOOGLE_APP_PASSWORD")
+	}
+
+	auth := smtp.PlainAuth("", username, password, es.smtpServer.host)
 
 	// Create a new template
 	tmpl := template.New("emailTemplate")
@@ -134,9 +275,9 @@ func (es *EmailService) SendEmail(
 		htmlBody
 
 	// Send the email
-	err = smtp.SendMail(es.smtpServer.Address(), auth, from, to, []byte(msg))
+	err = es.sendMail(auth, from, to, []byte(msg))
 	if err != nil {
-		return err
+		return fmt.Errorf("send email via %s failed: %w", es.smtpServer.Address(), err)
 	}
 
 	return nil

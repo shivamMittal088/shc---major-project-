@@ -28,6 +28,25 @@ Options:
     -h, --help  Print help
 ```
 
+## Backend URL Override
+
+By default, `shc` uses the production backend:
+
+`https://shc-backend-production.up.railway.app`
+
+To use a local backend (for OTP/debugging), set this env var before running commands:
+
+```powershell
+$env:SHC_BACKEND_API_BASE_URL = "http://localhost:<your-backend-port>"
+# Example: http://localhost:6969
+shc login
+```
+
+Notes:
+- If `SHC_BACKEND_API_BASE_URL` is set, it always takes priority.
+- If production OTP fails with SMTP timeout, `shc login` auto-tries local backends (`6969`, then `3000`).
+- On successful login without env override, CLI remembers the backend URL in `~/.shc-cli/config.toml` for future commands.
+
 ### TODOs
 
 - [ ] Share a portion of a file

@@ -4,9 +4,12 @@ use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 
 // when do we have to write crate?
-use crate::consts::{SHC_CLI_FOLDER_NAME, USER_CONFIG_FILE_NAME};
+use crate::consts::{
+    get_shc_backend_api_base_url_from_env, SHC_BACKEND_API_BASE_URL_DEFAULT, SHC_CLI_FOLDER_NAME,
+    USER_CONFIG_FILE_NAME,
+};
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct UserInfo {
     // what is meaning of Option<String>?
     pub email: Option<String>,
@@ -17,9 +20,17 @@ pub struct UserInfo {
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
+struct PersistedConfig {
+    #[serde(flatten)]
+    user: UserInfo,
+    backend_api_base_url: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
 
 pub struct UserConfig {
     pub user: UserInfo,
+    pub backend_api_base_url: Option<String>,
     // what is meaning of PathBuf? and what is config_path?
     pub config_path: PathBuf,
 }
@@ -44,13 +55,8 @@ impl UserConfig {
         if !config_path.exists() {
             // are we intializing user_config here?
             let user_config = UserConfig {
-                user: UserInfo {
-                    email: None,
-                    name: None,
-                    user_id: None,
-                    access_token: None,
-                    refresh_token: None,
-                },
+                user: UserInfo::default(),
+                backend_api_base_url: None,
                 config_path: config_path.clone(),
             };
             user_config.save();
@@ -62,29 +68,47 @@ impl UserConfig {
             fs::read_to_string(&config_path).expect("Something went wrong reading the file");
 
         // what is meaning of toml & from_str & expect?
-        let user: UserInfo = toml::from_str(&contents).expect("Could not parse TOML");
+        let persisted_config: PersistedConfig = toml::from_str(&contents)
+            .or_else(|_| {
+                toml::from_str::<UserInfo>(&contents).map(|user| PersistedConfig {
+                    user,
+                    backend_api_base_url: None,
+                })
+            })
+            .expect("Could not parse TOML");
 
         UserConfig {
-            user,
+            user: persisted_config.user,
+            backend_api_base_url: persisted_config.backend_api_base_url,
             config_path: config_path.clone(),
         }
     }
 
+    pub fn get_backend_api_base_url(&self) -> String {
+        if let Some(url) = get_shc_backend_api_base_url_from_env() {
+            return url;
+        }
+
+        self.backend_api_base_url
+            .clone()
+            .filter(|url| !url.trim().is_empty())
+            .unwrap_or_else(|| SHC_BACKEND_API_BASE_URL_DEFAULT.to_string())
+    }
+
     // what is meaning of &self? and what does below code do?
     pub fn save(&self) {
-        let toml = toml::to_string(&self.user).unwrap();
+        let persisted_config = PersistedConfig {
+            user: self.user.clone(),
+            backend_api_base_url: self.backend_api_base_url.clone(),
+        };
+
+        let toml = toml::to_string(&persisted_config).unwrap();
         fs::write(&self.config_path, toml).unwrap();
     }
 
     // FIXME: not working
     pub fn clear(&mut self) {
-        self.user = UserInfo {
-            email: None,
-            name: None,
-            user_id: None,
-            access_token: None,
-            refresh_token: None,
-        };
+        self.user = UserInfo::default();
         self.save();
     }
 }

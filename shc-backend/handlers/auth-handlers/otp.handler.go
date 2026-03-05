@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"strconv"
 
 	"github.com/aj-2000/shc-backend/models"
@@ -19,7 +20,11 @@ func GenerateOtp(c fiber.Ctx, as *services.AppService) error {
 	otp := as.AuthService.GenerateOtp(user.Email)
 
 	if err := as.EmailService.SendEmail([]string{user.Email}, "shc-cli OTP", strconv.Itoa(otp)); err != nil {
-		return err
+		log.Printf("failed to send otp to %s: %v", user.Email, err)
+		return &fiber.Error{
+			Code:    fiber.StatusServiceUnavailable,
+			Message: "OTP service is temporarily unavailable. Please try again shortly.",
+		}
 	}
 
 	return c.JSON(fiber.Map{

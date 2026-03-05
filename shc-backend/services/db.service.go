@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/aj-2000/shc-backend/models"
 	"gorm.io/driver/postgres"
@@ -30,7 +31,7 @@ func (ds *DbService) Paginated(page int, limit int) *gorm.DB {
 	return ds.Db.Order("updated_at desc").Offset(offset).Limit(limit)
 }
 
-func SeedPlans(db *gorm.DB) {
+func SeedPlans(db *gorm.DB) error {
 	plans := []models.SubscriptionPlan{
 		{
 			Name:             "Free",
@@ -63,13 +64,20 @@ func SeedPlans(db *gorm.DB) {
 
 	// Insert plans into the database
 	for _, plan := range plans {
-		result := db.Create(&plan)
+		// Keep plan names unique while allowing value updates.
+		result := db.Where(models.SubscriptionPlan{Name: plan.Name}).Assign(plan).FirstOrCreate(&plan)
 		if result.Error != nil {
-			log.Fatal(result.Error)
+			return result.Error
 		}
 	}
 
 	fmt.Println("Plans seeded successfully!")
+	return nil
+}
+
+func isEnvTrue(key string) bool {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv(key)))
+	return value == "1" || value == "true" || value == "yes" || value == "on"
 }
 
 func NewDbService() *DbService {
@@ -79,9 +87,19 @@ func NewDbService() *DbService {
 	if err != nil {
 		panic("failed to connect database")
 	}
-	// Db.Migrator().DropTable(&models.User{}, &models.File{}, &models.Subscription{}, &models.StripeTransaction{}, &models.SubscriptionPlan{}, &models.Session{})
-	Db.AutoMigrate(&models.User{}, &models.File{}, &models.Subscription{}, &models.StripeTransaction{}, &models.SubscriptionPlan{}, &models.Session{})
-	// SeedPlans(Db)
+
+	if isEnvTrue("SHC_DB_AUTO_MIGRATE") {
+		if err := Db.AutoMigrate(&models.User{}, &models.File{}, &models.Subscription{}, &models.StripeTransaction{}, &models.SubscriptionPlan{}, &models.Session{}); err != nil {
+			log.Fatalf("failed to auto-migrate database schema: %v", err)
+		}
+
+		if isEnvTrue("SHC_DB_SEED_PLANS") {
+			if err := SeedPlans(Db); err != nil {
+				log.Fatalf("failed to seed subscription plans: %v", err)
+			}
+		}
+	}
+
 	return &DbService{
 		Db: Db,
 	}
