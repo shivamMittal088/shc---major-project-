@@ -1,11 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { BarChart3, DollarSign, Files } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
+
+const PAGE_LOAD_TIME_STORAGE_KEY = "shc-page-load-times";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -32,6 +34,27 @@ const MENUS = [
 
 export default function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
+  const [pageLoadTimes, setPageLoadTimes] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const syncPageLoadTimes = () => {
+      try {
+        const rawValue = window.localStorage.getItem(PAGE_LOAD_TIME_STORAGE_KEY);
+        setPageLoadTimes(rawValue ? JSON.parse(rawValue) : {});
+      } catch {
+        setPageLoadTimes({});
+      }
+    };
+
+    syncPageLoadTimes();
+    window.addEventListener("storage", syncPageLoadTimes);
+    window.addEventListener("shc:page-load-time-updated", syncPageLoadTimes);
+
+    return () => {
+      window.removeEventListener("storage", syncPageLoadTimes);
+      window.removeEventListener("shc:page-load-time-updated", syncPageLoadTimes);
+    };
+  }, []);
 
   return (
     <aside className={cn("relative", className)}>
@@ -43,6 +66,7 @@ export default function Sidebar({ className }: SidebarProps) {
           {MENUS.map((menu) => {
             const Icon = menu.icon;
             const isActive = pathname === menu.pathname;
+            const loadTimeLabel = pageLoadTimes[menu.pathname];
 
             return (
               <Link
@@ -76,6 +100,16 @@ export default function Sidebar({ className }: SidebarProps) {
                   >
                     {menu.hint}
                   </span>
+                  {loadTimeLabel && (menu.pathname === "/" || menu.pathname === "/files") && (
+                    <span
+                      className={cn(
+                        "mt-0.5 truncate text-[10px] font-medium",
+                        isActive ? "text-slate-300" : "text-slate-400"
+                      )}
+                    >
+                      Opened in {loadTimeLabel}
+                    </span>
+                  )}
                 </span>
               </Link>
             );

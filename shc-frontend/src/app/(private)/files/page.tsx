@@ -4,6 +4,9 @@ import React from "react";
 import FileUploader from "@/components/FileUploader";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { formatPageLoadTime } from "@/lib/page-load-time";
+import BackendUnavailableNotice from "@/components/BackendUnavailableNotice";
+import PageLoadTimeReporter from "@/components/PageLoadTimeReporter";
 
 const FILES_PER_PAGE = 10;
 
@@ -26,8 +29,33 @@ export default async function ShcFiles({
 }: {
   searchParams?: { page?: string | string[] };
 }) {
+  const startedAt = Date.now();
   const requestedPage = parsePageNumber(searchParams?.page);
-  const files = await getFiles({ page: requestedPage, limit: FILES_PER_PAGE });
+  let files;
+
+  try {
+    files = await getFiles({ page: requestedPage, limit: FILES_PER_PAGE });
+  } catch (error) {
+    return (
+      <div className="space-y-3">
+        <header className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <h1 className="text-lg font-semibold tracking-tight text-slate-900">My Files</h1>
+          <p className="mt-0.5 text-xs text-slate-600">
+            Upload, share, and manage your files from one place.
+          </p>
+        </header>
+
+        <BackendUnavailableNotice
+          title="Files are temporarily unavailable"
+          description={
+            error instanceof Error ? error.message : "Unable to load your files right now."
+          }
+        />
+      </div>
+    );
+  }
+
+  const loadTimeLabel = formatPageLoadTime(Date.now() - startedAt);
   const currentPage = files.current_page || 1;
   const totalPages = Math.max(files.total_pages || 1, 1);
   const startResult = files.total_results === 0 ? 0 : (currentPage - 1) * files.per_page + 1;
@@ -35,6 +63,7 @@ export default async function ShcFiles({
 
   return (
     <div className="space-y-3">
+      <PageLoadTimeReporter pathname="/files" label={loadTimeLabel} />
       <header className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <h1 className="text-lg font-semibold tracking-tight text-slate-900">My Files</h1>
         <p className="mt-0.5 text-xs text-slate-600">

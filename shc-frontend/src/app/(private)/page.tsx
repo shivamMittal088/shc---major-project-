@@ -3,12 +3,39 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FileIcon, BookOpenIcon, PencilIcon, CalendarIcon, HardDriveIcon, PackageIcon, MailIcon, HashIcon, CreditCardIcon, ClockIcon } from "lucide-react";
+import { formatPageLoadTime } from "@/lib/page-load-time";
+import BackendUnavailableNotice from "@/components/BackendUnavailableNotice";
+import PageLoadTimeReporter from "@/components/PageLoadTimeReporter";
 
 export default async function DashboardPage() {
-  const user = await getMe();
+  const startedAt = Date.now();
+  let user;
+
+  try {
+    user = await getMe();
+  } catch (error) {
+    return (
+      <div className="container mx-auto max-w-7xl p-0.5 md:p-1">
+        <header className="mb-4 rounded-xl border border-slate-200 bg-gradient-to-r from-slate-900 to-slate-700 px-4 py-3 text-white shadow-sm">
+          <h1 className="mb-0.5 text-2xl font-bold tracking-tight">Overview</h1>
+          <p className="text-xs text-slate-200">Here&rsquo;s an overview of your account</p>
+        </header>
+
+        <BackendUnavailableNotice
+          title="Overview is temporarily unavailable"
+          description={
+            error instanceof Error ? error.message : "Unable to load account overview right now."
+          }
+        />
+      </div>
+    );
+  }
+
+  const loadTimeLabel = formatPageLoadTime(Date.now() - startedAt);
 
   return (
     <div className="container mx-auto max-w-7xl p-0.5 md:p-1">
+      <PageLoadTimeReporter pathname="/" label={loadTimeLabel} />
       <header className="mb-4 rounded-xl border border-slate-200 bg-gradient-to-r from-slate-900 to-slate-700 px-4 py-3 text-white shadow-sm">
         <h1 className="mb-0.5 text-2xl font-bold tracking-tight">Welcome, {user.name}</h1>
         <p className="text-xs text-slate-200">Here&rsquo;s an overview of your account</p>

@@ -1,6 +1,7 @@
 "use server";
 import { cookies } from "next/headers";
 import { permanentRedirect } from "next/navigation";
+import { getBackendBaseUrl } from "@/lib/backend-base-url";
 
 export async function logout() {
   // console.log("logout");
@@ -11,7 +12,7 @@ export async function logout() {
     throw new Error("No refresh token found");
   }
 
-  const res = await fetch(`${process.env.SHC_BACKEND_API_BASE_URL}/auth/logout`, {
+  const res = await fetch(`${getBackendBaseUrl()}/auth/logout`, {
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${refreshToken}`,

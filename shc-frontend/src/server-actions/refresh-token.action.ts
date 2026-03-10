@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { getBackendBaseUrl } from "@/lib/backend-base-url";
 
 type RefreshTokenResponse = {
   access_token: string;
@@ -16,7 +17,7 @@ export async function refreshToken() {
   const refreshToken = cookies().get("__shc_refresh_token")?.value;
 
   const res = await fetch(
-    `${process.env.SHC_BACKEND_API_BASE_URL}/auth/refresh-token`,
+    `${getBackendBaseUrl()}/auth/refresh-token`,
     {
       headers: {
         "Content-Type": "application/json",

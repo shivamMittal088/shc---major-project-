@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
+import { getBackendBaseUrl } from "@/lib/backend-base-url";
 
-const BASE_URL = process.env.SHC_BACKEND_API_BASE_URL;
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 // TODO: update cache type
 type Cache = "force-cache" | "no-store";
@@ -36,6 +36,7 @@ async function fetchWrapper(
   revalidate?: Revalidate,
   tags?: Tags
 ) {
+  const baseUrl = getBackendBaseUrl();
   const authToken = cookies().get("__shc_access_token")?.value;
   const options: FetchOptions = {
     method,
@@ -63,10 +64,21 @@ async function fetchWrapper(
     }
   }
 
-  const response = await fetch(
-    `${BASE_URL}${url.startsWith("/") ? url : `/${url}`}`,
-    options
-  );
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `${baseUrl}${url.startsWith("/") ? url : `/${url}`}`,
+      options
+    );
+  } catch (error) {
+    throw new ApiError(
+      error instanceof Error
+        ? `Unable to reach the backend at ${baseUrl}`
+        : "Unable to reach the backend",
+      503
+    );
+  }
 
   if (!response.ok) {
     throw new ApiError(
