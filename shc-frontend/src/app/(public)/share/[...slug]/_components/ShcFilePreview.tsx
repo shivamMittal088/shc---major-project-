@@ -5,6 +5,7 @@ import NoPreview from "./NoPreview";
 import CodePreview from "./CodePreview";
 import AudioPreview from "./AudioPreview";
 import ImagePreview from "./ImagePreview";
+import PdfPreview from "./PdfPreview";
 import VideoPreview from "./VideoPreview";
 
 export default async function ShcFilePreview({ file }: { file: ShcFile }) {
@@ -41,6 +42,10 @@ export default async function ShcFilePreview({ file }: { file: ShcFile }) {
 
   if (file.mime_type.startsWith("image")) {
     return <ImagePreview name={file.name} link={link} />;
+  }
+
+  if (file.mime_type === "application/pdf" || file.extension === "pdf") {
+    return <PdfPreview link={link} title={file.name} />;
   }
 
   if (file.mime_type.startsWith("video")) {
