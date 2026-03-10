@@ -10,6 +10,11 @@ import VideoPreview from "./VideoPreview";
 
 export default async function ShcFilePreview({ file }: { file: ShcFile }) {
   const link = file.download_url;
+  const normalizedExtension = file.extension.toLowerCase();
+  const isExecutableFile =
+    normalizedExtension === "exe" ||
+    file.mime_type === "application/x-msdownload" ||
+    file.mime_type === "application/x-dosexec";
 
   if (file.size > 5 * 1000 * 1000) {
     return <NoPreview fileSizeLimitExceeded />;
@@ -50,6 +55,15 @@ export default async function ShcFilePreview({ file }: { file: ShcFile }) {
 
   if (file.mime_type.startsWith("video")) {
     return <VideoPreview link={link} />;
+  }
+
+  if (isExecutableFile) {
+    return (
+      <NoPreview
+        title="Executable files cannot be previewed"
+        description=".exe files are binary executables and browsers do not render them safely. Download the file if you trust the source and want to inspect or run it locally."
+      />
+    );
   }
 
   return <NoPreview />;
