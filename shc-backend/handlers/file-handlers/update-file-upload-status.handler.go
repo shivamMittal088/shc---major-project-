@@ -43,7 +43,7 @@ func UpdateFileUploadStatus(c fiber.Ctx, as *services.AppService) error {
 		return err
 	}
 
-	invalidateUserFileCaches(as, userId, false)
+	invalidateUserFileCaches(as, userId, true)
 
 	return c.JSON(fiber.Map{
 		"id":            file.ID,

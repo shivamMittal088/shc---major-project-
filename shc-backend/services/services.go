@@ -1,5 +1,7 @@
 package services
 
+import "log"
+
 type AppService struct {
 	DbService               *DbService
 	FileService             *FileService
@@ -27,6 +29,12 @@ func NewAppService() *AppService {
 	emailService := NewEmailService()
 	cronService := NewCronService()
 	redisService := NewRedisService()
+
+	if err := fileService.SyncAllUserFileCounts(); err != nil {
+		log.Fatalf("failed to sync user file counts: %v", err)
+	}
+
+	_ = redisService.DeleteByPrefix("user_summary:")
 
 	return &AppService{
 		DbService:               dbService,

@@ -13,6 +13,11 @@ type FileService struct {
 	subscriptionService *SubscriptionService
 }
 
+type userFileCount struct {
+	UserId uuid.UUID
+	Total  int64
+}
+
 func NewFileService(dbService *DbService, subscriptionService *SubscriptionService) *FileService {
 	return &FileService{
 		dbService:           dbService,
@@ -105,9 +110,16 @@ func (fs *FileService) CreateFile(file *m.File) (*m.File, error) {
 		return nil, err
 	}
 
-	if err := fs.dbService.Db.Create(&file).Error; err != nil {
+	if err := fs.dbService.Db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&file).Error; err != nil {
+			return err
+		}
+
+		return fs.syncUserFileCountTx(tx, file.UserId)
+	}); err != nil {
 		return nil, err
 	}
+
 	return file, nil
 }
 
@@ -120,13 +132,24 @@ func (fs *FileService) UpdateAFile(file *m.File) (*m.File, error) {
 
 func (fs *FileService) DeleteAFile(userId uuid.UUID, fileId uuid.UUID) (string, error) {
 	var file m.File
-	if err := fs.dbService.Db.Where("id = ? AND user_id = ?", fileId, userId).First(&file).Error; err != nil {
+	r2Path := ""
+
+	if err := fs.dbService.Db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("id = ? AND user_id = ?", fileId, userId).First(&file).Error; err != nil {
+			return err
+		}
+
+		r2Path = file.R2Path
+
+		if err := tx.Delete(&file).Error; err != nil {
+			return err
+		}
+
+		return fs.syncUserFileCountTx(tx, userId)
+	}); err != nil {
 		return "", err
 	}
-	r2Path := file.R2Path
-	if err := fs.dbService.Db.Delete(&file).Error; err != nil {
-		return "", err
-	}
+
 	return r2Path, nil
 }
 
@@ -144,13 +167,22 @@ func (fs *FileService) RenameFile(userId uuid.UUID, fileId uuid.UUID, newName st
 
 func (fs *FileService) UpdateUploadStatus(userId uuid.UUID, fileId uuid.UUID, status m.UploadStatus) (*m.File, error) {
 	var file m.File
-	if err := fs.dbService.Db.Where("id = ? AND user_id = ?", fileId, userId).First(&file).Error; err != nil {
+
+	if err := fs.dbService.Db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("id = ? AND user_id = ?", fileId, userId).First(&file).Error; err != nil {
+			return err
+		}
+
+		file.UploadStatus = status
+		if err := tx.Save(&file).Error; err != nil {
+			return err
+		}
+
+		return fs.syncUserFileCountTx(tx, userId)
+	}); err != nil {
 		return nil, err
 	}
-	file.UploadStatus = status
-	if err := fs.dbService.Db.Save(&file).Error; err != nil {
-		return nil, err
-	}
+
 	return &file, nil
 }
 
@@ -170,8 +202,51 @@ func (fs *FileService) IncrementViewCount(fileId uuid.UUID) error {
 
 func (fs *FileService) DeleteAllNonUploadedFiles() error {
 	oneDayAgo := time.Now().AddDate(0, 0, -1)
-	if err := fs.dbService.Db.Where("upload_status != ? AND created_at < ?", m.Uploaded, oneDayAgo).Delete(&m.File{}).Error; err != nil {
+
+	return fs.dbService.Db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("upload_status != ? AND created_at < ?", m.Uploaded, oneDayAgo).Delete(&m.File{}).Error; err != nil {
+			return err
+		}
+
+		return fs.syncAllUserFileCountsTx(tx)
+	})
+}
+
+func (fs *FileService) SyncAllUserFileCounts() error {
+	return fs.dbService.Db.Transaction(func(tx *gorm.DB) error {
+		return fs.syncAllUserFileCountsTx(tx)
+	})
+}
+
+func (fs *FileService) syncUserFileCountTx(tx *gorm.DB, userId uuid.UUID) error {
+	var total int64
+
+	if err := tx.Model(&m.File{}).Where("user_id = ? AND upload_status = ?", userId, m.Uploaded).Count(&total).Error; err != nil {
 		return err
 	}
+
+	return tx.Model(&m.User{}).Where("id = ?", userId).Update("file_count", total).Error
+}
+
+func (fs *FileService) syncAllUserFileCountsTx(tx *gorm.DB) error {
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Model(&m.User{}).Update("file_count", 0).Error; err != nil {
+		return err
+	}
+
+	var counts []userFileCount
+	if err := tx.Model(&m.File{}).
+		Select("user_id, COUNT(*) AS total").
+		Where("upload_status = ?", m.Uploaded).
+		Group("user_id").
+		Scan(&counts).Error; err != nil {
+		return err
+	}
+
+	for _, count := range counts {
+		if err := tx.Model(&m.User{}).Where("id = ?", count.UserId).Update("file_count", count.Total).Error; err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

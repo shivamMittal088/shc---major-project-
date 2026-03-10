@@ -28,18 +28,3 @@ type File struct {
 	DownloadCount uint         `gorm:"not null;default:0;" json:"download_count"`
 	UserId        uuid.UUID    `gorm:"not null;index:idx_user_id_file" json:"user_id"`
 }
-
-func (f *File) AfterCreate(db *gorm.DB) (err error) {
-	if err := db.Model(&User{}).Where("id = ?", f.UserId).Update("file_count", gorm.Expr("file_count + ?", 1)).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-// TODO: should we decrease the file count when a file is deleted? or permanently deleted?
-func (f *File) AfterDelete(db *gorm.DB) (err error) {
-	if err := db.Model(&User{}).Where("id = ?", f.UserId).Update("file_count", gorm.Expr("file_count - ?", 1)).Error; err != nil {
-		return err
-	}
-	return nil
-}
