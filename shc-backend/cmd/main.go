@@ -53,7 +53,7 @@ func main() {
 	}))
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost, http://localhost:3000, https://shc-app.vercel.app, https://shc.ajaysharma.dev, https://ajaysharma.dev",
+		AllowOrigins: "http://localhost, http://localhost:3000, http://127.0.0.1:3000, https://shc-app.vercel.app, https://shc.ajaysharma.dev, https://ajaysharma.dev",
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
 

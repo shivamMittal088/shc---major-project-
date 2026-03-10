@@ -32,6 +32,15 @@ func (fs *FileService) FindFileById(fileId uuid.UUID) (*m.File, error) {
 	return &file, nil
 }
 
+func (fs *FileService) FindFileByIdRaw(fileId uuid.UUID) (*m.File, error) {
+	var file m.File
+	if err := fs.dbService.Db.Where("id = ?", fileId).First(&file).Error; err != nil {
+		return nil, err
+	}
+
+	return &file, nil
+}
+
 func (fs *FileService) ToggleIsPublic(fileId uuid.UUID, userId uuid.UUID) (*m.File, error) {
 	var file m.File
 	if err := fs.dbService.Db.Where("id = ? AND user_id = ?", fileId, userId).First(&file).Error; err != nil {

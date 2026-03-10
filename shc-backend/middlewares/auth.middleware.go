@@ -8,8 +8,24 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-var SemiPublicRoutes = []*regexp.Regexp{
-	regexp.MustCompile(`/api/files/.*`),
+var publicFileReadRoute = regexp.MustCompile(`^/api/files/[0-9a-fA-F-]+$`)
+var publicFileDownloadRoute = regexp.MustCompile(`^/api/files/download/[0-9a-fA-F-]+$`)
+var publicDownloadCountRoute = regexp.MustCompile(`^/api/files/increment-download-count/[0-9a-fA-F-]+$`)
+
+func isSemiPublicRoute(method string, path string) bool {
+	if method == fiber.MethodGet && publicFileReadRoute.MatchString(path) {
+		return true
+	}
+
+	if method == fiber.MethodGet && publicFileDownloadRoute.MatchString(path) {
+		return true
+	}
+
+	if method == fiber.MethodPatch && publicDownloadCountRoute.MatchString(path) {
+		return true
+	}
+
+	return false
 }
 
 func AuthMiddleware(c fiber.Ctx, as *services.AppService) error {
@@ -22,13 +38,7 @@ func AuthMiddleware(c fiber.Ctx, as *services.AppService) error {
 	claim, err := as.AuthService.VerifyAccessToken(accessToken)
 
 	path := c.Path()
-	semiPublic := false
-	for _, route := range SemiPublicRoutes {
-		if route.MatchString(path) {
-			semiPublic = true
-			break
-		}
-	}
+	semiPublic := isSemiPublicRoute(c.Method(), path)
 
 	if err == nil {
 

@@ -2,6 +2,8 @@ package filehandlers
 
 import (
 	"context"
+	"net/url"
+	"path/filepath"
 	"strings"
 
 	m "github.com/aj-2000/shc-backend/models"
@@ -20,11 +22,14 @@ type AddFileDto struct {
 
 func AddFileToDb(c fiber.Ctx, as *services.AppService) error {
 	userIdString := string(c.Request().Header.Peek("user_id"))
+	if userIdString == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
 
 	userId, err := uuid.Parse(userIdString)
 
 	if err != nil {
-		return err
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 
 	}
 
@@ -32,7 +37,11 @@ func AddFileToDb(c fiber.Ctx, as *services.AppService) error {
 
 	if err := c.Bind().Body(body); err != nil {
 		print("error binding body", err.Error())
-		return err
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
+	}
+
+	if strings.TrimSpace(body.FileName) == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "file_name is required")
 	}
 
 	fileSize := body.FileSize
@@ -53,23 +62,29 @@ func AddFileToDb(c fiber.Ctx, as *services.AppService) error {
 
 	ctx := context.Background()
 	key := aws.String(userId.String() + "/" + uuid.NewString() + "_" + strings.Replace(body.FileName, " ", "_", -1))
+	uploadURL := ""
 
-	res, err := as.S3Service.S3PresignClient.PresignPutObject(ctx, &s3.PutObjectInput{
-		Bucket:        aws.String(as.S3Service.BucketName),
-		Key:           key,
-		ContentType:   aws.String(body.MimeType),
-		ContentLength: aws.Int64(int64(body.FileSize)),
-		// TODO: add expiration
-	})
+	if !as.S3Service.IsLocalMode() {
+		res, err := as.S3Service.S3PresignClient.PresignPutObject(ctx, &s3.PutObjectInput{
+			Bucket:      aws.String(as.S3Service.BucketName),
+			Key:         key,
+			ContentType: aws.String(body.MimeType),
+			// TODO: add expiration
+		})
 
-	if err != nil {
-		return nil
+		if err != nil {
+			return err
+		}
+
+		uploadURL = res.URL
 	}
+
+	extension := strings.TrimPrefix(filepath.Ext(body.FileName), ".")
 
 	newFile := m.File{
 		Name:      body.FileName,
 		Size:      fileSize,
-		Extension: strings.Split(body.FileName, ".")[1],
+		Extension: extension,
 		MimeType:  body.MimeType,
 		R2Path:    *key,
 		UserId:    userId,
@@ -81,11 +96,15 @@ func AddFileToDb(c fiber.Ctx, as *services.AppService) error {
 		return err
 	}
 
+	if as.S3Service.IsLocalMode() {
+		uploadURL = backendBaseURL(c) + "/api/files/upload/" + f.ID.String() + "?upload_key=" + url.QueryEscape(f.R2Path)
+	}
+
 	//FIXME: two ID?
 	return c.JSON(fiber.Map{
 		"file_id":    f.ID,
 		"file_name":  f.Name,
-		"upload_url": res.URL,
+		"upload_url": uploadURL,
 		"is_public":  f.IsPublic,
 	})
 }

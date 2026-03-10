@@ -195,6 +195,41 @@ cargo fetch
 | `SHC_DB_AUTO_MIGRATE` | Optional | If true, runs GORM auto-migration on startup |
 | `SHC_DB_SEED_PLANS` | Optional | If true, seeds subscription plans (requires auto-migrate) |
 
+### Required R2 CORS For Browser Uploads
+
+If frontend upload shows CORS or preflight `403` for the presigned upload URL, configure your R2 bucket CORS.
+
+Suggested CORS rule:
+
+```json
+[
+	{
+		"AllowedOrigins": [
+			"http://localhost:3000"
+		],
+		"AllowedMethods": [
+			"GET",
+			"HEAD",
+			"PUT"
+		],
+		"AllowedHeaders": [
+			"*"
+		],
+		"ExposeHeaders": [
+			"ETag",
+			"Content-Length"
+		],
+		"MaxAgeSeconds": 3600
+	}
+]
+```
+
+Notes:
+
+- Add your production frontend origin(s) to `AllowedOrigins`.
+- Keep `PUT` enabled because uploads use presigned `PUT` URLs.
+- `OPTIONS` is handled by the storage service based on this CORS policy.
+
 ## Frontend (`shc-frontend/.env`)
 
 | Variable | Required | Purpose |

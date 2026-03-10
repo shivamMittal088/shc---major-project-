@@ -9,10 +9,13 @@ import (
 func ToggleFileVisibility(c fiber.Ctx, as *services.AppService) error {
 	userIdString := string(c.Request().Header.Peek("user_id"))
 	fileIdString := c.Params("fileId")
+	if userIdString == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
 
 	userId, err := uuid.Parse(userIdString)
 	if err != nil {
-		return err
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
 	fileId, err := uuid.Parse(fileIdString)

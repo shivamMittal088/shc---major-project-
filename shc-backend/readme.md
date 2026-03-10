@@ -273,6 +273,57 @@ GOOGLE_APP_PASSWORD=your_google_app_password
 SHC_DEV_SKIP_OTP_EMAIL=false
 ```
 
+### Required R2 CORS For Presigned Browser Uploads
+
+Frontend uploads use presigned `PUT` URLs directly from the browser. Your R2 bucket must allow the frontend origin and `PUT` method in CORS rules.
+
+Use a rule like:
+
+```json
+[
+	{
+		"AllowedOrigins": [
+			"http://localhost:3000"
+		],
+		"AllowedMethods": [
+			"GET",
+			"HEAD",
+			"PUT"
+		],
+		"AllowedHeaders": [
+			"*"
+		],
+		"ExposeHeaders": [
+			"ETag",
+			"Content-Length"
+		],
+		"MaxAgeSeconds": 3600
+	}
+]
+```
+
+If browser devtools shows `preflight` + `403` + `CORS error` on the R2 upload URL, this CORS policy is missing or incomplete.
+
+Add production frontend origins in `AllowedOrigins` when deploying.
+
+Example with AWS CLI (S3-compatible API):
+
+```bash
+aws s3api put-bucket-cors \
+	--bucket "$R2_BUCKET_NAME" \
+	--cors-configuration file://r2-cors.local.json \
+	--endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
+```
+
+PowerShell equivalent:
+
+```powershell
+aws s3api put-bucket-cors `
+	--bucket $env:R2_BUCKET_NAME `
+	--cors-configuration file://r2-cors.local.json `
+	--endpoint-url "https://$env:R2_ACCOUNT_ID.r2.cloudflarestorage.com"
+```
+
 `SMTP_PASSWORD` is preferred for generic SMTP providers.
 `GOOGLE_APP_PASSWORD` is still supported for Gmail app-password based auth.
 

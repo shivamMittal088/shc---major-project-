@@ -1,6 +1,7 @@
 package filehandlers
 
 import (
+	"net/url"
 	"time"
 
 	"github.com/aj-2000/shc-backend/services"
@@ -39,19 +40,27 @@ func GetFile(c fiber.Ctx, as *services.AppService) error {
 		return err
 	}
 
-	downloadUrl, err := as.RedisService.GetCache("download_url_of_" + file.R2Path)
+	downloadUrl := ""
 
-	if err != nil {
-		res, err := as.S3Service.S3PresignClient.PresignGetObject(c.Context(), &s3.GetObjectInput{
-			Bucket: aws.String(as.S3Service.BucketName),
-			Key:    aws.String(file.R2Path),
-		})
+	if as.S3Service.IsLocalMode() {
+		downloadUrl = backendBaseURL(c) + "/api/files/download/" + file.ID.String() + "?download_key=" + url.QueryEscape(file.R2Path)
+	} else {
+		cachedDownloadURL, cacheErr := as.RedisService.GetCache("download_url_of_" + file.R2Path)
 
-		as.RedisService.SetCache("download_url_of_"+file.R2Path, res.URL, time.Duration(880)*time.Second)
-		downloadUrl = res.URL
+		if cacheErr != nil {
+			res, err := as.S3Service.S3PresignClient.PresignGetObject(c.Context(), &s3.GetObjectInput{
+				Bucket: aws.String(as.S3Service.BucketName),
+				Key:    aws.String(file.R2Path),
+			})
 
-		if err != nil {
-			return err
+			as.RedisService.SetCache("download_url_of_"+file.R2Path, res.URL, time.Duration(880)*time.Second)
+			downloadUrl = res.URL
+
+			if err != nil {
+				return err
+			}
+		} else {
+			downloadUrl, _ = cachedDownloadURL.(string)
 		}
 	}
 

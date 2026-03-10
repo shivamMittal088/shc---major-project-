@@ -14,6 +14,9 @@ type UpdateFileUploadStatusDto struct {
 func UpdateFileUploadStatus(c fiber.Ctx, as *services.AppService) error {
 	fileIdString := c.Params("fileId")
 	userIdString := string(c.Request().Header.Peek("user_id"))
+	if userIdString == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
 
 	fileId, err := uuid.Parse(fileIdString)
 
@@ -24,7 +27,7 @@ func UpdateFileUploadStatus(c fiber.Ctx, as *services.AppService) error {
 	userId, err := uuid.Parse(userIdString)
 
 	if err != nil {
-		return err
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 
 	}
 

@@ -28,16 +28,16 @@ export default async function ShcFiles() {
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
-                <th className="w-[300px] px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                <th className="w-[260px] px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                   Name
                 </th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                   Date
                 </th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                   Size
                 </th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                   Actions
                 </th>
               </tr>

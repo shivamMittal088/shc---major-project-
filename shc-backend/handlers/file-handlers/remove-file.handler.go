@@ -1,6 +1,10 @@
 package filehandlers
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/aj-2000/shc-backend/services"
 	"github.com/google/uuid"
 
@@ -29,6 +33,22 @@ func RemoveFile(c fiber.Ctx, as *services.AppService) error {
 
 	if err != nil {
 		return err
+	}
+
+	if as.S3Service.IsLocalMode() {
+		fullPath, pathErr := as.S3Service.ResolveLocalPath(key)
+		if pathErr == nil {
+			removeErr := os.Remove(fullPath)
+			if removeErr != nil && !os.IsNotExist(removeErr) {
+				return removeErr
+			}
+
+			// Best-effort cleanup for empty parent folders.
+			parentDir := filepath.Dir(fullPath)
+			if !strings.EqualFold(filepath.Clean(parentDir), filepath.Clean(as.S3Service.LocalStorageDir)) {
+				_ = os.Remove(parentDir)
+			}
+		}
 	}
 
 	return c.JSON(fiber.Map{

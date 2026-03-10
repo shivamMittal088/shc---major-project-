@@ -11,7 +11,9 @@ import (
 )
 
 func setupRoutes(app *fiber.App, as *services.AppService) {
-	app.Get("/", handlers.Home)
+	app.Get("/", func(c fiber.Ctx) error {
+		return handlers.Home(c, as)
+	})
 
 	auth := app.Group("auth")
 
@@ -45,6 +47,14 @@ func setupRoutes(app *fiber.App, as *services.AppService) {
 
 	files.Get("/", func(c fiber.Ctx) error {
 		return fh.ListFiles(c, as)
+	})
+
+	files.Get("download/:fileId", func(c fiber.Ctx) error {
+		return fh.DownloadFileContent(c, as)
+	})
+
+	files.Put("upload/:fileId", func(c fiber.Ctx) error {
+		return fh.UploadFileContent(c, as)
 	})
 
 	files.Get(":fileId", func(c fiber.Ctx) error {
