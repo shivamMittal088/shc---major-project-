@@ -96,6 +96,8 @@ func AddFileToDb(c fiber.Ctx, as *services.AppService) error {
 		return err
 	}
 
+	invalidateUserFileCaches(as, userId, true)
+
 	if as.S3Service.IsLocalMode() {
 		uploadURL = backendBaseURL(c) + "/api/files/upload/" + f.ID.String() + "?upload_key=" + url.QueryEscape(f.R2Path)
 	}

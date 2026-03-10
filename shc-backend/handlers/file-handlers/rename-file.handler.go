@@ -40,6 +40,8 @@ func RenameFile(c fiber.Ctx, as *services.AppService) error {
 		return err
 	}
 
+	invalidateUserFileCaches(as, userId, false)
+
 	return c.JSON(fiber.Map{
 		"id":         f.ID,
 		"r2_path":    f.R2Path,

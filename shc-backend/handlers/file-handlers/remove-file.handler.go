@@ -51,6 +51,8 @@ func RemoveFile(c fiber.Ctx, as *services.AppService) error {
 		}
 	}
 
+	invalidateUserFileCaches(as, userId, true)
+
 	return c.JSON(fiber.Map{
 		"key": key,
 	})

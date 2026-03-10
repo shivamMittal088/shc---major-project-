@@ -29,6 +29,8 @@ func ToggleFileVisibility(c fiber.Ctx, as *services.AppService) error {
 		return err
 	}
 
+	invalidateUserFileCaches(as, userId, false)
+
 	return c.JSON(fiber.Map{
 		"id":            file.ID,
 		"r2_path":       file.R2Path,

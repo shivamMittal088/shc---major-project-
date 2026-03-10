@@ -9,6 +9,28 @@ import (
 	"github.com/google/uuid"
 )
 
+type listFileItemResponse struct {
+	ID           uuid.UUID           `json:"id"`
+	Name         string              `json:"name"`
+	Size         uint                `json:"size"`
+	IsPublic     bool                `json:"is_public"`
+	MimeType     string              `json:"mime_type"`
+	Extension    string              `json:"extension"`
+	UserID       uuid.UUID           `json:"user_id"`
+	UploadStatus models.UploadStatus `json:"upload_status"`
+	UpdatedAt    string              `json:"updated_at"`
+}
+
+type listFilesResponse struct {
+	Results      []listFileItemResponse `json:"results"`
+	TotalResults int64                  `json:"total_results"`
+	TotalPages   uint                   `json:"total_pages"`
+	CurrentPage  uint                   `json:"current_page"`
+	NextPage     uint                   `json:"next_page"`
+	PerPage      uint                   `json:"per_page"`
+	PrevPage     uint                   `json:"prev_page"`
+}
+
 func ListFiles(c fiber.Ctx, as *services.AppService) error {
 
 	userIdString := string(c.Request().Header.Peek("user_id"))
@@ -32,6 +54,12 @@ func ListFiles(c fiber.Ctx, as *services.AppService) error {
 		return err
 	}
 
+	cacheKey := services.UserFilesCacheKey(userId, search, page, limit)
+	var cachedResponse listFilesResponse
+	if err := as.RedisService.GetJSONCache(cacheKey, &cachedResponse); err == nil {
+		return c.JSON(cachedResponse)
+	}
+
 	filesPaginationResults, err := as.FileService.FindFilesByUserId(userId, search, page, limit)
 	if err != nil {
 		return err
@@ -39,7 +67,7 @@ func ListFiles(c fiber.Ctx, as *services.AppService) error {
 
 	// TODO: clean this up
 
-	trimmedFiles := []map[string]any{}
+	trimmedFiles := []listFileItemResponse{}
 	var files []models.File
 
 	if results, ok := filesPaginationResults.Results.([]models.File); ok {
@@ -49,19 +77,30 @@ func ListFiles(c fiber.Ctx, as *services.AppService) error {
 	}
 
 	for _, file := range files {
-		trimmedFiles = append(trimmedFiles, map[string]any{
-			"id":            file.ID,
-			"name":          file.Name,
-			"size":          file.Size,
-			"is_public":     file.IsPublic,
-			"mime_type":     file.MimeType,
-			"extension":     file.Extension,
-			"user_id":       file.UserId,
-			"upload_status": file.UploadStatus,
-			"updated_at":    file.UpdatedAt,
+		trimmedFiles = append(trimmedFiles, listFileItemResponse{
+			ID:           file.ID,
+			Name:         file.Name,
+			Size:         file.Size,
+			IsPublic:     file.IsPublic,
+			MimeType:     file.MimeType,
+			Extension:    file.Extension,
+			UserID:       file.UserId,
+			UploadStatus: file.UploadStatus,
+			UpdatedAt:    file.UpdatedAt.Format("2006-01-02T15:04:05.999999999Z07:00"),
 		})
 	}
 
-	filesPaginationResults.Results = trimmedFiles
-	return c.JSON(filesPaginationResults)
+	response := listFilesResponse{
+		Results:      trimmedFiles,
+		TotalResults: filesPaginationResults.TotalResults,
+		TotalPages:   filesPaginationResults.TotalPages,
+		CurrentPage:  filesPaginationResults.CurrentPage,
+		NextPage:     filesPaginationResults.NextPage,
+		PerPage:      filesPaginationResults.PerPage,
+		PrevPage:     filesPaginationResults.PrevPage,
+	}
+
+	_ = as.RedisService.SetJSONCache(cacheKey, response, services.UserFilesCacheTTL)
+
+	return c.JSON(response)
 }
