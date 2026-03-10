@@ -8,5 +8,6 @@ export type ShcFile = {
   extension: string;
   user_id: number;
   upload_status: string;
+  created_at: Date;
   updated_at: Date;
 };

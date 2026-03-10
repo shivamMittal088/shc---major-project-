@@ -18,6 +18,7 @@ type listFileItemResponse struct {
 	Extension    string              `json:"extension"`
 	UserID       uuid.UUID           `json:"user_id"`
 	UploadStatus models.UploadStatus `json:"upload_status"`
+	CreatedAt    string              `json:"created_at"`
 	UpdatedAt    string              `json:"updated_at"`
 }
 
@@ -48,19 +49,20 @@ func ListFiles(c fiber.Ctx, as *services.AppService) error {
 	}
 
 	search := c.Query("search")
+	language := c.Query("language")
 
 	userId, err := uuid.Parse(userIdString)
 	if err != nil {
 		return err
 	}
 
-	cacheKey := services.UserFilesCacheKey(userId, search, page, limit)
+	cacheKey := services.UserFilesCacheKey(userId, search, language, page, limit)
 	var cachedResponse listFilesResponse
 	if err := as.RedisService.GetJSONCache(cacheKey, &cachedResponse); err == nil {
 		return c.JSON(cachedResponse)
 	}
 
-	filesPaginationResults, err := as.FileService.FindFilesByUserId(userId, search, page, limit)
+	filesPaginationResults, err := as.FileService.FindFilesByUserId(userId, search, language, page, limit)
 	if err != nil {
 		return err
 	}
@@ -86,6 +88,7 @@ func ListFiles(c fiber.Ctx, as *services.AppService) error {
 			Extension:    file.Extension,
 			UserID:       file.UserId,
 			UploadStatus: file.UploadStatus,
+			CreatedAt:    file.CreatedAt.Format("2006-01-02T15:04:05.999999999Z07:00"),
 			UpdatedAt:    file.UpdatedAt.Format("2006-01-02T15:04:05.999999999Z07:00"),
 		})
 	}

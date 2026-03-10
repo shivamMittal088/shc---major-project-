@@ -80,6 +80,63 @@
   }
 }
 
+@layer utilities {
+  .shc-private-shell {
+    background:
+      radial-gradient(circle at top left, rgba(34, 211, 238, 0.18), transparent 24%),
+      radial-gradient(circle at 85% 10%, rgba(59, 130, 246, 0.18), transparent 22%),
+      radial-gradient(circle at 50% 120%, rgba(168, 85, 247, 0.16), transparent 30%),
+      linear-gradient(180deg, #050816 0%, #070d1d 52%, #020611 100%);
+  }
+
+  .shc-private-grid {
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 92%);
+  }
+
+  .shc-glass-panel {
+    @apply border border-white/10 bg-white/[0.04] backdrop-blur-2xl;
+    box-shadow:
+      0 30px 80px -48px rgba(14, 165, 233, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .shc-glass-panel-strong {
+    @apply border border-white/10 bg-[#081121]/80 backdrop-blur-2xl;
+    box-shadow:
+      0 40px 120px -60px rgba(56, 189, 248, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .shc-hover-glow {
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease,
+      border-color 180ms ease,
+      background-color 180ms ease;
+  }
+
+  .shc-hover-glow:hover {
+    border-color: rgba(103, 232, 249, 0.24);
+    box-shadow:
+      0 24px 60px -34px rgba(56, 189, 248, 0.48),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .shc-scrollbar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .shc-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.22);
+    border-radius: 9999px;
+  }
+}
+
 ::selection {
   background: rgba(14, 165, 233, 0.24);
 }

@@ -59,13 +59,16 @@ func (fs *FileService) ToggleIsPublic(fileId uuid.UUID, userId uuid.UUID) (*m.Fi
 	return &file, nil
 }
 
-func (fs *FileService) FindFilesByUserId(user_id uuid.UUID, search string, page int, limit int) (*PaginatedResults, error) {
+func (fs *FileService) FindFilesByUserId(user_id uuid.UUID, search string, language string, page int, limit int) (*PaginatedResults, error) {
 	var files []m.File
 	var totalCount int64
 
 	baseQuery := fs.dbService.Db.Model(&m.File{}).Where("user_id = ?", user_id)
 	if search != "" {
 		baseQuery = baseQuery.Where("name ILIKE ?", "%"+search+"%")
+	}
+	if language != "" {
+		baseQuery = baseQuery.Where("extension = ?", language)
 	}
 
 	if err := baseQuery.Count(&totalCount).Error; err != nil {

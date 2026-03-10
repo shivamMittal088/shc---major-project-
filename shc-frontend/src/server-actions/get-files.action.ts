@@ -14,13 +14,28 @@ export type FilesResponse = {
 type GetFilesParams = {
   page?: number;
   limit?: number;
+  search?: string;
+  language?: string;
 };
 
-export async function getFiles({ page = 1, limit = 10 }: GetFilesParams = {}) {
+export async function getFiles({
+  page = 1,
+  limit = 10,
+  search = "",
+  language = "",
+}: GetFilesParams = {}) {
   const params = new URLSearchParams({
     page: String(page),
     limit: String(limit),
   });
+
+  if (search.trim()) {
+    params.set("search", search.trim());
+  }
+
+  if (language.trim()) {
+    params.set("language", language.trim().toLowerCase());
+  }
 
   return (await api.get(`api/files?${params.toString()}`, "no-store")) as FilesResponse;
 }

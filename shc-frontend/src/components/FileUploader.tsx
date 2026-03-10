@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { Loader2, UploadCloud } from "lucide-react";
+import { ArrowUpRight, Loader2, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -79,15 +80,28 @@ export default function FileUploader() {
   };
 
   return (
-    <div className="mb-3 flex flex-col gap-3 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-sky-50 px-4 py-3 shadow-sm md:flex-row md:items-center md:justify-between">
-      <div className="space-y-1">
-        <h2 className="text-base font-semibold text-slate-900">Upload File</h2>
-        <p className="text-xs text-slate-600">
-          Choose a file to upload to your account.
-        </p>
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2 }}
+      className="relative overflow-hidden rounded-[20px] border border-white/10 bg-gradient-to-br from-cyan-500/10 via-white/[0.04] to-indigo-500/10 px-4 py-3.5 shadow-[0_24px_72px_-56px_rgba(56,189,248,0.8)] backdrop-blur-2xl"
+    >
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.16),transparent_55%)]" />
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/15 bg-cyan-400/10 px-2.5 py-0.5 text-[8px] font-medium uppercase tracking-[0.18em] text-cyan-100">
+            <UploadCloud className="h-3 w-3" />
+            Upload flow
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold tracking-tight text-white">Ship a new snippet bundle</h2>
+            <p className="mt-0.5 max-w-2xl text-[11px] text-slate-300">
+              Upload source files, docs, or binaries and instantly generate a shareable link for your team.
+            </p>
+          </div>
+        </div>
 
-      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
         <input
           ref={fileInputRef}
           type="file"
@@ -98,21 +112,23 @@ export default function FileUploader() {
         <Button
           onClick={handleUploadClick}
           disabled={isUploading}
-          className="h-8 bg-slate-900 px-3 text-xs font-semibold hover:bg-slate-800"
+          className="h-9 rounded-full border border-cyan-300/20 bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400 px-4 text-[11px] font-semibold text-slate-950 shadow-[0_18px_36px_-22px_rgba(56,189,248,0.95)] transition-all hover:shadow-[0_22px_44px_-18px_rgba(56,189,248,0.95)]"
         >
           {isUploading ? (
             <>
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
               Uploading...
             </>
           ) : (
             <>
               <UploadCloud className="mr-1.5 h-3.5 w-3.5" />
-              Upload
+              Select file
+              <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
             </>
           )}
         </Button>
       </div>
-    </div>
+      </div>
+    </motion.div>
   );
 }

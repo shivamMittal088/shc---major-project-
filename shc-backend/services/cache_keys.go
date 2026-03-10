@@ -18,9 +18,10 @@ func UserSummaryCacheKey(userID uuid.UUID) string {
 	return "user_summary:" + userID.String()
 }
 
-func UserFilesCacheKey(userID uuid.UUID, search string, page int, limit int) string {
+func UserFilesCacheKey(userID uuid.UUID, search string, language string, page int, limit int) string {
 	search = strings.TrimSpace(search)
-	return "user_files:" + userID.String() + ":search=" + url.QueryEscape(search) + ":page=" + intToString(page) + ":limit=" + intToString(limit)
+	language = strings.TrimSpace(language)
+	return "user_files:" + userID.String() + ":search=" + url.QueryEscape(search) + ":language=" + url.QueryEscape(language) + ":page=" + intToString(page) + ":limit=" + intToString(limit)
 }
 
 func UserFilesCachePrefix(userID uuid.UUID) string {
