@@ -18,6 +18,16 @@ type FetchOptions = {
   };
 };
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 async function fetchWrapper(
   url: string,
   method: HttpMethod,
@@ -59,10 +69,11 @@ async function fetchWrapper(
   );
 
   if (!response.ok) {
-    throw new Error(
+    throw new ApiError(
       // TODO: get pretty error message from backend and display them as it is.
       (await response.text()) ||
-        `Failed to fetch ${url} with status ${response.status}`
+        `Failed to fetch ${url} with status ${response.status}`,
+      response.status
     );
   }
 

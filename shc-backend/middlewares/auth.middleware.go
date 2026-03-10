@@ -10,6 +10,7 @@ import (
 
 var publicFileReadRoute = regexp.MustCompile(`^/api/files/[0-9a-fA-F-]+$`)
 var publicFileDownloadRoute = regexp.MustCompile(`^/api/files/download/[0-9a-fA-F-]+$`)
+var publicFileUploadRoute = regexp.MustCompile(`^/api/files/upload/[0-9a-fA-F-]+$`)
 var publicDownloadCountRoute = regexp.MustCompile(`^/api/files/increment-download-count/[0-9a-fA-F-]+$`)
 
 func isSemiPublicRoute(method string, path string) bool {
@@ -18,6 +19,10 @@ func isSemiPublicRoute(method string, path string) bool {
 	}
 
 	if method == fiber.MethodGet && publicFileDownloadRoute.MatchString(path) {
+		return true
+	}
+
+	if method == fiber.MethodPut && publicFileUploadRoute.MatchString(path) {
 		return true
 	}
 

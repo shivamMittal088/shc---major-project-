@@ -1,6 +1,7 @@
 package filehandlers
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/gofiber/fiber/v3"
+	"gorm.io/gorm"
 )
 
 func RemoveFile(c fiber.Ctx, as *services.AppService) error {
@@ -32,6 +34,9 @@ func RemoveFile(c fiber.Ctx, as *services.AppService) error {
 	key, err := as.FileService.DeleteAFile(userId, fileId)
 
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "File not found")
+		}
 		return err
 	}
 

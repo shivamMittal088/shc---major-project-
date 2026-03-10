@@ -12,7 +12,6 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/limiter"
 	"github.com/gofiber/fiber/v3/middleware/logger"
-	"github.com/gofiber/storage/redis/v3"
 	_ "github.com/joho/godotenv/autoload"
 )
 
@@ -26,25 +25,19 @@ func main() {
 
 	app.Use(logger.New())
 
-	// for rate limiting
-	// TODO: check if it interferes with other keys
-	storage := redis.New((redis.Config{
-		URL: os.Getenv("REDIS_URL"),
-	}))
-
 	// we are storing rate limit data in redis for 30 seconds
 	app.Use(limiter.New(limiter.Config{
 		Max:        15,
 		Expiration: 30 * time.Second,
+		Storage:    services.NewRateLimitStorage(),
 		KeyGenerator: func(c fiber.Ctx) string {
-			return "rate_limit_" + c.IP()
+			return c.IP()
 		},
 		LimitReached: func(c fiber.Ctx) error {
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
 				"message": "You have exceeded your rate limit",
 			})
 		},
-		Storage: storage,
 	}))
 
 	// TODO: Verify if it helps
