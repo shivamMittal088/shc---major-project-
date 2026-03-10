@@ -2,9 +2,36 @@ import { getFiles } from "@/server-actions/get-files.action";
 import FileListItem from "@/components/FileListItem";
 import React from "react";
 import FileUploader from "@/components/FileUploader";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
-export default async function ShcFiles() {
-  const files = await getFiles();
+const FILES_PER_PAGE = 10;
+
+function parsePageNumber(page: string | string[] | undefined) {
+  const parsedPage = Number(Array.isArray(page) ? page[0] : page);
+
+  if (!Number.isInteger(parsedPage) || parsedPage < 1) {
+    return 1;
+  }
+
+  return parsedPage;
+}
+
+function buildFilesPageHref(page: number) {
+  return page <= 1 ? "/files" : `/files?page=${page}`;
+}
+
+export default async function ShcFiles({
+  searchParams,
+}: {
+  searchParams?: { page?: string | string[] };
+}) {
+  const requestedPage = parsePageNumber(searchParams?.page);
+  const files = await getFiles({ page: requestedPage, limit: FILES_PER_PAGE });
+  const currentPage = files.current_page || 1;
+  const totalPages = Math.max(files.total_pages || 1, 1);
+  const startResult = files.total_results === 0 ? 0 : (currentPage - 1) * files.per_page + 1;
+  const endResult = files.total_results === 0 ? 0 : startResult + files.results.length - 1;
 
   return (
     <div className="space-y-3">
@@ -51,6 +78,42 @@ export default async function ShcFiles() {
             </tbody>
           </table>
         </div>
+
+        {files.total_results > 0 && (
+          <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-xs text-slate-600 md:flex-row md:items-center md:justify-between">
+            <p>
+              Showing {startResult}-{endResult} of {files.total_results} files
+            </p>
+
+            <div className="flex items-center gap-2">
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+              >
+                <Link href={buildFilesPageHref(currentPage - 1)} aria-disabled={currentPage <= 1}>
+                  Previous
+                </Link>
+              </Button>
+
+              <span className="min-w-[90px] text-center font-medium text-slate-700">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+              >
+                <Link href={buildFilesPageHref(currentPage + 1)} aria-disabled={currentPage >= totalPages}>
+                  Next
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

@@ -63,11 +63,16 @@ func (fs *FileService) FindFilesByUserId(user_id uuid.UUID, search string, page 
 	var files []m.File
 	var totalCount int64
 
-	query := fs.dbService.Paginated(page, limit).Where("user_id = ?", user_id)
+	baseQuery := fs.dbService.Db.Model(&m.File{}).Where("user_id = ?", user_id)
 	if search != "" {
-		query = query.Where("name ILIKE ?", "%"+search+"%")
+		baseQuery = baseQuery.Where("name ILIKE ?", "%"+search+"%")
 	}
-	query = query.Order("updated_at DESC").Limit(50).Find(&files).Count(&totalCount)
+
+	if err := baseQuery.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	query := baseQuery.Order("updated_at DESC").Offset((page - 1) * limit).Limit(limit).Find(&files)
 
 	if query.Error != nil {
 		return nil, query.Error
