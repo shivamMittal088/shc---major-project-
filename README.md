@@ -34,10 +34,17 @@ This design provides:
 - File download via presigned URLs (with download count tracking)
 - File visibility controls (public/private)
 - File rename and delete operations
-- Paginated and searchable file listing
+- Paginated and searchable file listing (web search includes autocomplete)
 - Subscription plan limits (reads/writes/storage)
 - Redis-backed caching and rate limiting
 - Browser UI (Next.js) and terminal UI/CLI (Rust)
+
+### Current Web UI Notes
+
+- Overview and sidebar are tuned for a compact layout.
+- Files page uses a full-width compact list for uploaded files.
+- Files page search supports autocomplete suggestions by file name.
+- Language filter dropdown is removed from the web Files page.
 
 ---
 
