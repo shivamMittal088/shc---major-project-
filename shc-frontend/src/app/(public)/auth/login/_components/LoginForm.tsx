@@ -10,7 +10,6 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormDescription,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -18,7 +17,14 @@ import { submitLoginForm } from "@/server-actions/submit-otp.action";
 import { useState } from "react";
 import { sendOtp } from "@/server-actions/send-otp.action";
 import { toast } from "sonner";
-import Logo from "@/components/ui/logo";
+import Image from "next/image";
+import {
+  ArrowRight,
+  KeyRound,
+  MailCheck,
+  ShieldCheck,
+} from "lucide-react";
+import { motion } from "framer-motion";
 
 const LoginFormSchema = z.object({
   name: z.string().min(3).max(255),
@@ -32,13 +38,18 @@ export default function LoginForm() {
   const [otpStatus, setOtpStatus] = useState<
     "pending" | "sending" | "sent" | "error"
   >("pending");
+
   const loginForm = useForm<LoginFormType>({
     resolver: zodResolver(LoginFormSchema),
     defaultValues: {},
   });
 
+  const isSendingOtp = otpStatus === "sending";
+  const isOtpSent = otpStatus === "sent";
+  const isSubmittingOtp = loginForm.formState.isSubmitting;
+
   const onLoginFormSubmit = async (data: LoginFormType) => {
-    toast.promise(submitLoginForm(data), {
+    await toast.promise(submitLoginForm(data), {
       loading: "Submitting OTP...",
       success: "Logged in successfully",
       error: "Something went wrong",
@@ -69,103 +80,196 @@ export default function LoginForm() {
   };
 
   return (
-    <main className="flex-col w-screen h-screen flex items-center bg-bsvg bg-cover bg-center justify-center bg-gray-100">
-      <Form {...loginForm}>
-        <form
-          onSubmit={loginForm.handleSubmit(onLoginFormSubmit)}
-          className="space-y-8 bg-white p-8 shadow-md w-96"
+    <main className="relative min-h-screen overflow-hidden bg-[#040814] px-3 py-3 text-slate-100 sm:px-4">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(56,189,248,0.2),transparent_26%),radial-gradient(circle_at_86%_20%,rgba(59,130,246,0.16),transparent_24%),linear-gradient(180deg,#040814_0%,#070f23_45%,#030713_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] bg-[size:36px_36px] opacity-20" />
+
+      <motion.div
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6 }}
+        className="pointer-events-none absolute -left-16 top-20 h-56 w-56 rounded-full bg-cyan-400/20 blur-3xl"
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.7, delay: 0.08 }}
+        className="pointer-events-none absolute -right-20 bottom-8 h-64 w-64 rounded-full bg-sky-500/16 blur-3xl"
+      />
+
+      <div className="relative mx-auto flex min-h-[calc(100vh-1.5rem)] w-full max-w-4xl items-center justify-center">
+        <motion.section
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="w-full max-w-[380px] rounded-[20px] border border-cyan-300/15 bg-[#071124]/88 p-4 shadow-[0_30px_86px_-50px_rgba(56,189,248,0.7)] backdrop-blur-2xl sm:p-5"
         >
-          <div className="-mb-10">
-            <Logo where="login" />
-          </div>
-          <div className="mx-auto flex items-center justify-center"></div>
-          <FormField
-            control={loginForm.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-base font-semibold">Name</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Shivam Mittal"
-                    {...field}
-                    disabled={otpStatus === "sending" || otpStatus === "sent"}
-                    className="focus:outline-none focus:ring-0 focus:border-0"
-                  />
-                </FormControl>
-                <FormDescription className="text-sm text-gray-500"></FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={loginForm.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-base font-semibold">Email</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="example@gmail.com"
-                    {...field}
-                    disabled={otpStatus === "sending" || otpStatus === "sent"}
-                    className="focus:outline-none focus:ring-0 focus:border-0"
-                  />
-                </FormControl>
-                <FormDescription className="text-sm text-gray-500"></FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {otpStatus !== "sent" && (
-            <Button
-              disabled={otpStatus === "sending"}
-              onClick={onClickSendOtpButton}
-              className="bg-[#00002C] hover:bg-[#020267] text-white font-semibold px-4"
-            >
-              Send OTP
-            </Button>
-          )}
-
-          {otpStatus === "sent" && (
-            <>
-              <FormField
-                control={loginForm.control}
-                name="otp"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-base font-semibold">
-                      OTP
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Six digits number"
-                        {...field}
-                        disabled={loginForm.formState.isSubmitting}
-                        className="focus:outline-none focus:ring-0 focus:border-0"
-                      />
-                    </FormControl>
-                    <FormDescription className="text-sm text-gray-500">
-                      Check your email for the OTP.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <Image
+                src="/assets/images/logo.png"
+                alt="ShareCode"
+                width={36}
+                height={36}
+                priority
               />
+              <div>
+                <p className="text-sm font-semibold text-white">ShareCode</p>
+              </div>
+            </div>
+          </div>
 
-              <Button
-                disabled={loginForm.formState.isSubmitting}
-                type="submit"
-                className="bg-dblue hover:bg-rblue text-white font-semibold py-2 px-4"
-              >
-                Submit OTP
-              </Button>
-            </>
-          )}
-        </form>
-      </Form>
+          <p className="mb-3 text-xs text-slate-300">
+            Fast OTP verification.
+          </p>
+
+          <div className="mb-3 grid grid-cols-2 gap-1.5 text-[10px]">
+            <div
+              className={`rounded-md border px-2 py-1 transition-colors ${
+                !isOtpSent
+                  ? "border-cyan-300/35 bg-cyan-300/15 text-cyan-100"
+                  : "border-white/10 bg-white/[0.03] text-slate-300"
+              }`}
+            >
+              1. Profile
+            </div>
+            <div
+              className={`rounded-md border px-2 py-1 transition-colors ${
+                isOtpSent
+                  ? "border-cyan-300/35 bg-cyan-300/15 text-cyan-100"
+                  : "border-white/10 bg-white/[0.03] text-slate-300"
+              }`}
+            >
+              2. Verify OTP
+            </div>
+          </div>
+
+          <Form {...loginForm}>
+            <form
+              onSubmit={loginForm.handleSubmit(onLoginFormSubmit)}
+              className="space-y-2.5"
+            >
+                <FormField
+                  control={loginForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-semibold text-slate-200">Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Your full name"
+                          autoComplete="name"
+                          {...field}
+                          disabled={isSendingOtp || isOtpSent}
+                          className="h-9 rounded-md border-white/15 bg-white/[0.03] text-sm text-slate-100 placeholder:text-slate-400"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={loginForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-semibold text-slate-200">Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="you@example.com"
+                          autoComplete="email"
+                          {...field}
+                          disabled={isSendingOtp || isOtpSent}
+                          className="h-9 rounded-md border-white/15 bg-white/[0.03] text-sm text-slate-100 placeholder:text-slate-400"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {!isOtpSent && (
+                  <Button
+                    type="button"
+                    disabled={isSendingOtp}
+                    onClick={onClickSendOtpButton}
+                    className="h-9 w-full rounded-md bg-gradient-to-r from-cyan-300 via-sky-300 to-blue-300 text-slate-950 hover:opacity-90"
+                  >
+                    {isSendingOtp ? "Sending OTP..." : "Continue with OTP"}
+                    <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                  </Button>
+                )}
+
+                {isOtpSent && (
+                  <>
+                    <div className="rounded-md border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1.5 text-[11px] text-emerald-100">
+                      OTP sent. Enter 6-digit code.
+                    </div>
+
+                    <FormField
+                      control={loginForm.control}
+                      name="otp"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold text-slate-200">One-time password</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="123456"
+                              autoComplete="one-time-code"
+                              inputMode="numeric"
+                              maxLength={6}
+                              {...field}
+                              disabled={isSubmittingOtp}
+                              className="h-9 rounded-md border-white/15 bg-white/[0.03] text-center text-sm tracking-[0.22em] text-slate-100 placeholder:text-slate-500"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="flex flex-col gap-1.5 sm:flex-row">
+                      <Button
+                        type="submit"
+                        disabled={isSubmittingOtp}
+                        className="h-9 flex-1 rounded-md bg-gradient-to-r from-sky-300 to-cyan-300 text-slate-950 hover:opacity-90"
+                      >
+                        {isSubmittingOtp ? "Verifying..." : "Unlock workspace"}
+                        <KeyRound className="ml-1.5 h-3.5 w-3.5" />
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={isSendingOtp || isSubmittingOtp}
+                        onClick={onClickSendOtpButton}
+                        className="h-9 rounded-md border-white/15 bg-transparent text-slate-200 hover:bg-white/[0.06]"
+                      >
+                        Resend OTP
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {otpStatus === "error" && (
+                  <p className="text-xs text-rose-300">
+                    Could not send OTP. Please recheck your details and try again.
+                  </p>
+                )}
+            </form>
+          </Form>
+
+          <div className="mt-3 flex items-center gap-1.5 text-[10px] text-slate-300">
+            <MailCheck className="h-3 w-3 text-cyan-300" />
+            OTP email
+            <span className="mx-0.5 text-slate-500">|</span>
+            <ShieldCheck className="h-3 w-3 text-emerald-300" />
+            Server-protected access
+          </div>
+        </motion.section>
+      </div>
     </main>
   );
 }
