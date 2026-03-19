@@ -1,3 +1,11 @@
+export type RiskAnalysis = {
+  risk_score: number;
+  risk_level: "Low" | "Medium" | "High";
+  explanations: string[];
+  model_used: string;
+  cached?: boolean;
+};
+
 export type ShcFile = {
   id: string;
   download_url: string;
@@ -10,4 +18,5 @@ export type ShcFile = {
   upload_status: string;
   created_at: Date;
   updated_at: Date;
+  risk?: RiskAnalysis | null;
 };

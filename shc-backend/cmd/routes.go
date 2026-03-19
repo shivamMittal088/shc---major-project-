@@ -11,6 +11,8 @@ import (
 )
 
 func setupRoutes(app *fiber.App, as *services.AppService) {
+	setupRiskRoutes(app, as)
+
 	app.Get("/", func(c fiber.Ctx) error {
 		return handlers.Home(c, as)
 	})

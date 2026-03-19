@@ -9,6 +9,7 @@ This project provides:
 - Presigned upload/download URLs for Cloudflare R2 (S3-compatible)
 - Subscription limits (daily reads/writes, storage caps)
 - Redis-backed caching and rate limiting
+- Hybrid risk scoring for shared links (rule baseline + ML microservice)
 
 ---
 
@@ -203,7 +204,19 @@ Per-user limits are tracked in subscription records:
 
 Limits are updated during file reads/writes.
 
-### 5) Scheduled Jobs (Cron)
+### 5) Risk Scoring
+
+- `POST /analyze-link`
+	- Accepts JSON or multipart form-data (`file`, `metadata`)
+	- Supports `file_url`, `file_id`, metadata features, and optional base64 file payload
+	- Returns `risk_score` (`0-100`), `risk_level` (`Low|Medium|High`), and explanations
+	- Uses Redis cache for repeated requests
+	- Calls Python ML service (`/score`) and falls back to local rules when unavailable
+
+- `GET /api/files/:fileId`
+	- Existing file response now includes a `risk` object populated at access time
+
+### 6) Scheduled Jobs (Cron)
 
 At midnight the server runs maintenance jobs:
 - deactivate expired subscriptions
@@ -253,6 +266,11 @@ SHC_DB_SEED_PLANS=false
 
 # Redis
 REDIS_URL=redis://localhost:6379/0
+
+# Risk scoring ML service
+RISK_ML_SERVICE_URL=http://localhost:8081
+RISK_SERVICE_TIMEOUT_MS=4000
+RISK_SCORE_CACHE_TTL_SECONDS=300
 
 # Cloudflare R2 (S3-compatible)
 R2_ACCOUNT_ID=your_r2_account_id

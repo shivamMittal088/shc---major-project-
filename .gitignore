@@ -5,3 +5,27 @@
 **/.env.*
 !.env.example
 !**/.env.example
+
+# Python ML service
+shc-risk-ml-service/.venv/
+shc-risk-ml-service/__pycache__/
+shc-risk-ml-service/**/__pycache__/
+shc-risk-ml-service/**/*.pyc
+shc-risk-ml-service/**/*.pyo
+shc-risk-ml-service/models/*.joblib
+shc-risk-ml-service/models/*.json
+shc-risk-ml-service/models/*.pkl
+!shc-risk-ml-service/models/.gitkeep
+shc-risk-ml-service/.venv
+shc-risk-ml-service/*.log
+
+# Frontend build output
+shc-frontend/.next/
+shc-frontend/out/
+shc-frontend/node_modules/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.log

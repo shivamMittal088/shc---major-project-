@@ -8,6 +8,7 @@ import NotAuthorized from "./_components/NotAuthorized";
 import ShcFilePreview from "./_components/ShcFilePreview";
 import LoadingPreview from "./_components/LoadingPreview";
 import DownloadButton from "@/components/DownloadButton";
+import RiskBadge from "@/components/RiskBadge";
 
 export default async function ShcFile({
   params,
@@ -35,6 +36,15 @@ export default async function ShcFile({
                   {dayjs(file.updated_at).fromNow()}
                 </p>
               </div>
+              {file.risk ? (
+                <div className="mt-3 max-w-xl">
+                  <RiskBadge
+                    score={file.risk.risk_score}
+                    level={file.risk.risk_level}
+                    explanations={file.risk.explanations}
+                  />
+                </div>
+              ) : null}
             </div>
 
             <div>

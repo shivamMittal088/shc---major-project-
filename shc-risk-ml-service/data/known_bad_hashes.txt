@@ -1,0 +1,4 @@
+# Example hashes only for local testing.
+# Replace with curated threat intelligence feeds (VirusTotal, MalwareBazaar, internal IOC feeds).
+deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+badbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadb

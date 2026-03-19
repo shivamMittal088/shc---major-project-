@@ -64,6 +64,17 @@ func GetFile(c fiber.Ctx, as *services.AppService) error {
 		}
 	}
 
+	risk, _ := as.RiskScoringService.Analyze(services.RiskAnalyzeRequest{
+		FileID:            file.ID.String(),
+		FileURL:           downloadUrl,
+		FileName:          file.Name,
+		MimeType:          file.MimeType,
+		FileSize:          uint64(file.Size),
+		UploadSource:      "internal",
+		ShareFrequency:    uint64(file.ViewCount),
+		DownloadFrequency: uint64(file.DownloadCount),
+	})
+
 	return c.JSON(fiber.Map{
 		"download_url":  downloadUrl,
 		"id":            file.ID,
@@ -75,5 +86,6 @@ func GetFile(c fiber.Ctx, as *services.AppService) error {
 		"user_id":       file.UserId,
 		"upload_status": file.UploadStatus,
 		"updated_at":    file.UpdatedAt,
+		"risk":          risk,
 	})
 }

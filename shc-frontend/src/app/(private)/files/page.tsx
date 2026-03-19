@@ -1,4 +1,4 @@
-import { getFiles } from "@/server-actions/get-files.action";
+import { getFiles, FilesResponse } from "@/server-actions/get-files.action";
 import FileListItem from "@/components/FileListItem";
 import React from "react";
 import FileUploader from "@/components/FileUploader";
@@ -53,7 +53,7 @@ export default async function ShcFiles({
   const startedAt = Date.now();
   const requestedPage = parsePageNumber(searchParams?.page);
   const search = parseQueryValue(searchParams?.search);
-  let files;
+  let files: FilesResponse;
 
   try {
     files = await getFiles({
@@ -89,8 +89,8 @@ export default async function ShcFiles({
   const totalPages = Math.max(files.total_pages || 1, 1);
   const startResult = files.total_results === 0 ? 0 : (currentPage - 1) * files.per_page + 1;
   const endResult = files.total_results === 0 ? 0 : startResult + files.results.length - 1;
-  const searchSuggestions = Array.from(
-    new Set(files.results.map((file) => file.name.trim()).filter(Boolean))
+  const searchSuggestions: string[] = Array.from(
+    new Set(files.results.map((file) => file.name.trim()).filter((n): n is string => n.length > 0))
   ).slice(0, 12);
 
   return (

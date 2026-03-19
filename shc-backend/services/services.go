@@ -14,6 +14,7 @@ type AppService struct {
 	EmailService            *EmailService
 	CronService             *CronService
 	RedisService            *RedisService
+	RiskScoringService      *RiskScoringService
 }
 
 func NewAppService() *AppService {
@@ -29,6 +30,7 @@ func NewAppService() *AppService {
 	emailService := NewEmailService()
 	cronService := NewCronService()
 	redisService := NewRedisService()
+	riskScoringService := NewRiskScoringService(redisService)
 
 	if err := fileService.SyncAllUserFileCounts(); err != nil {
 		log.Fatalf("failed to sync user file counts: %v", err)
@@ -48,5 +50,6 @@ func NewAppService() *AppService {
 		EmailService:            emailService,
 		CronService:             cronService,
 		RedisService:            redisService,
+		RiskScoringService:      riskScoringService,
 	}
 }

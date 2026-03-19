@@ -7,6 +7,7 @@ SHC is a full-stack file sharing platform with three deliverables in one reposit
 - `shc-backend`: Go API for authentication, file metadata, quotas, and storage URL generation
 - `shc-frontend`: Next.js web app for browser-based file management
 - `shc-cli`: Rust command-line tool for terminal-first file operations
+- `shc-risk-ml-service`: Python ML microservice for risk scoring and threat explanations
 
 ---
 
@@ -37,6 +38,7 @@ This design provides:
 - Paginated and searchable file listing (web search includes autocomplete)
 - Subscription plan limits (reads/writes/storage)
 - Redis-backed caching and rate limiting
+- Real-time risk scoring on shared-link access (`Low`, `Medium`, `High`)
 - Browser UI (Next.js) and terminal UI/CLI (Rust)
 
 ### Current Web UI Notes
@@ -69,6 +71,8 @@ This design provides:
 | TypeScript | `shc-frontend` | Type-safe frontend/server-action development |
 | Tailwind CSS | `shc-frontend` | Utility-first styling for consistent UI development |
 | Node.js + npm | `shc-frontend` | Frontend toolchain/runtime for development and builds |
+| Python + FastAPI | `shc-risk-ml-service` | ML inference API for malicious-content risk scoring |
+| scikit-learn | `shc-risk-ml-service` | Structured + text model training/inference |
 
 ---
 
@@ -78,6 +82,7 @@ This design provides:
 flowchart LR
 	CLI[shc-cli Rust] --> API[shc-backend Go/Fiber API]
 	WEB[shc-frontend Next.js] --> API
+	API --> RISK[Risk ML Service Python/FastAPI]
 	API --> DB[(PostgreSQL)]
 	API --> REDIS[(Redis)]
 	API --> R2[(Cloudflare R2 Object Storage)]
@@ -115,6 +120,11 @@ High-level request flow:
     ├── src/api_client.rs   # HTTP client logic and token refresh handling
     ├── src/cli.rs          # CLI command definitions
     └── src/user_config.rs  # Local config/token persistence
+├── shc-risk-ml-service/
+│   ├── app/                # FastAPI app and risk scoring engine
+│   ├── training/           # Model training scripts
+│   ├── data/               # Threat intel stubs and feedback data
+│   └── models/             # Trained model artifacts
 ```
 
 ---
