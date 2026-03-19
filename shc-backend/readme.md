@@ -365,6 +365,7 @@ Use it only for local debugging.
 - PostgreSQL
 - Redis
 - Cloudflare R2 bucket credentials
+- Python 3.11+ (optional — required only to run the ML risk scoring service; backend uses built-in rules as fallback)
 
 ### Install dependencies
 

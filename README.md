@@ -104,27 +104,27 @@ High-level request flow:
 .
 ├── shc-backend/
 │   ├── cmd/                # App entrypoint, route registration, cron startup
-│   ├── handlers/           # HTTP handlers (auth/files/user)
+│   ├── handlers/           # HTTP handlers (auth/files/user/risk)
 │   ├── middlewares/        # Fiber middleware (auth)
 │   ├── models/             # GORM models
-│   ├── services/           # Business logic + DB/Redis/S3/email integrations
+│   ├── services/           # Business logic + DB/Redis/S3/email/risk integrations
 │   └── utils/              # Helper functions (password/hash helpers)
 ├── shc-frontend/
 │   ├── src/app/            # App Router pages/layouts
-│   ├── src/components/     # Reusable UI components
+│   ├── src/components/     # Reusable UI components (incl. RiskBadge)
 │   ├── src/server-actions/ # Server-side actions for API workflows
 │   ├── src/lib/            # Shared helpers (API client, date, KV)
 │   └── src/types/          # Type definitions
-└── shc-cli/
-    ├── src/command/        # Command implementations (add/list/get/remove/...)
-    ├── src/api_client.rs   # HTTP client logic and token refresh handling
-    ├── src/cli.rs          # CLI command definitions
-    └── src/user_config.rs  # Local config/token persistence
-├── shc-risk-ml-service/
-│   ├── app/                # FastAPI app and risk scoring engine
-│   ├── training/           # Model training scripts
-│   ├── data/               # Threat intel stubs and feedback data
-│   └── models/             # Trained model artifacts
+├── shc-cli/
+│   ├── src/command/        # Command implementations (add/list/get/remove/...)
+│   ├── src/api_client.rs   # HTTP client logic and token refresh handling
+│   ├── src/cli.rs          # CLI command definitions
+│   └── src/user_config.rs  # Local config/token persistence
+└── shc-risk-ml-service/
+    ├── app/                # FastAPI app and hybrid risk scoring engine
+    ├── training/           # Model training scripts (RandomForest + TF-IDF/LR)
+    ├── data/               # Threat intel stubs and feedback data
+    └── models/             # Trained model artifacts (generated, not committed)
 ```
 
 ---
@@ -137,6 +137,7 @@ High-level request flow:
 - Go 1.21+
 - Rust (stable toolchain + Cargo)
 - Node.js 18+ and npm
+- Python 3.11+ (for the ML risk scoring service)
 - PostgreSQL
 - Redis
 
@@ -179,6 +180,32 @@ cd ../shc-cli
 cargo fetch
 ```
 
+## Set up the ML risk service
+
+Windows (PowerShell):
+
+```powershell
+cd shc-risk-ml-service
+.\start.ps1
+```
+
+The script will:
+1. Create a Python virtual environment (`.venv`) if it does not exist
+2. Install all Python dependencies from `requirements.txt`
+3. Train the risk scoring models if model artifacts are missing
+4. Start the FastAPI server on `http://localhost:8081`
+
+macOS/Linux:
+
+```bash
+cd shc-risk-ml-service
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python -m training.train_models
+uvicorn app.main:app --host 0.0.0.0 --port 8081
+```
+
 ---
 
 # 8. Environment Variables
@@ -211,6 +238,9 @@ cargo fetch
 | `GOOGLE_APP_PASSWORD` | Optional | Gmail app password alternative |
 | `SHC_DB_AUTO_MIGRATE` | Optional | If true, runs GORM auto-migration on startup |
 | `SHC_DB_SEED_PLANS` | Optional | If true, seeds subscription plans (requires auto-migrate) |
+| `RISK_ML_SERVICE_URL` | Optional | URL of the ML risk service (default: `http://localhost:8081`) |
+| `RISK_SERVICE_TIMEOUT_MS` | Optional | HTTP timeout for ML service calls in ms (default: `4000`) |
+| `RISK_SCORE_CACHE_TTL_SECONDS` | Optional | Redis TTL for cached risk scores in seconds (default: `300`) |
 
 ### Required R2 CORS For Browser Uploads
 
@@ -295,7 +325,22 @@ npm run dev
 
 Frontend default URL: `http://localhost:3000`
 
-## 3) Run CLI
+## 3) Start ML risk service
+
+Windows:
+
+```powershell
+cd shc-risk-ml-service
+.\start.ps1
+```
+
+Service URL: `http://localhost:8081`
+
+Health check: `GET http://localhost:8081/healthz`
+
+The backend automatically falls back to its built-in rule engine if the ML service is unreachable.
+
+## 4) Run CLI
 
 ```bash
 cd shc-cli
@@ -369,13 +414,44 @@ Auth notes:
 | Method | Endpoint | Auth | Description |
 | --- | --- | --- | --- |
 | `GET` | `/api/files/` | Access token | List files (supports pagination/search via query params) |
-| `GET` | `/api/files/:fileId` | Access token | Get file metadata/download URL |
+| `GET` | `/api/files/:fileId` | Access token | Get file metadata/download URL (includes `risk` object) |
 | `POST` | `/api/files/add` | Access token | Create file record and get upload URL |
 | `PATCH` | `/api/files/update-upload-status/:fileId` | Access token | Update upload status |
 | `PATCH` | `/api/files/toggle-visibility/:fileId` | Access token | Toggle file visibility |
 | `PATCH` | `/api/files/increment-download-count/:fileId` | Access token | Increment file download count |
 | `PATCH` | `/api/files/rename/:id` | Access token | Rename file |
 | `DELETE` | `/api/files/remove/:id` | Access token | Delete file |
+
+## Risk Scoring
+
+| Method | Endpoint | Auth | Description |
+| --- | --- | --- | --- |
+| `POST` | `/analyze-link` | No | Score a file URL or metadata for malware/phishing risk |
+
+Request body (JSON or multipart form-data):
+
+```json
+{
+  "file_url": "https://example.com/report.pdf",
+  "file_name": "report.pdf",
+  "mime_type": "application/pdf",
+  "file_size": 102400
+}
+```
+
+Response:
+
+```json
+{
+  "risk_score": 12,
+  "risk_level": "Low",
+  "explanations": ["PDF with standard size and no embedded scripts"],
+  "model_used": "hybrid-rules-rf-nlp",
+  "cached": false
+}
+```
+
+The backend caches results in Redis keyed by SHA-256 of the request payload. If the ML service is offline the Go rule engine responds as fallback.
 
 ---
 
@@ -388,6 +464,9 @@ Auth notes:
 - Improve OTP reliability and operational observability
 - Add resumable uploads/downloads in CLI and web
 - Publish prebuilt CLI binaries for major platforms
+- Replace synthetic ML training data with real threat intel feeds (VirusTotal, OpenPhish, PhishTank)
+- Add feedback loop UI so users can mark files as safe/malicious to improve model accuracy
+- Add per-file risk history and audit log in the database
 
 ---
 

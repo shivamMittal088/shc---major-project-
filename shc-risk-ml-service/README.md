@@ -91,11 +91,49 @@ Always isolate malware sample processing in sandbox environments.
 
 ## Run locally
 
+### Windows (recommended — one command)
+
+```powershell
+# From shc-risk-ml-service/
+.\start.ps1
+```
+
+`start.ps1` auto-handles the full lifecycle:
+- Creates `.venv` virtual environment if absent
+- Installs dependencies only when `requirements.txt` changes
+- Trains models if `models/*.joblib` artifacts are missing
+- Starts uvicorn with `--reload` on `http://0.0.0.0:8081`
+
+Alternatively double-click `start.bat` to open a PowerShell window that runs the same script.
+
+### macOS / Linux (manual)
+
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 python -m training.train_models
 uvicorn app.main:app --host 0.0.0.0 --port 8081
 ```
+
+### Verify the service is up
+
+```bash
+curl http://localhost:8081/healthz
+# {"status":"ok","model":"hybrid-rules-rf-nlp"}
+```
+
+## Backend integration
+
+The Go backend (`shc-backend`) connects to this service automatically when the following env vars are set in `shc-backend/.env`:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `RISK_ML_SERVICE_URL` | `http://localhost:8081` | Base URL of this service |
+| `RISK_SERVICE_TIMEOUT_MS` | `4000` | Per-request HTTP timeout (ms) |
+| `RISK_SCORE_CACHE_TTL_SECONDS` | `300` | Redis TTL for cached risk results |
+
+If this service is unreachable the backend falls back to its built-in Go rule engine automatically. No configuration is needed to activate the fallback.
 
 ## Security hardening
 
