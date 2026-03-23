@@ -19,6 +19,26 @@ MODEL_RUNTIME = ModelRuntime(PROJECT_ROOT / "models")
 app = FastAPI(title="SHC Risk Scoring API", version="0.1.0")
 
 
+@app.on_event("startup")
+async def on_startup() -> None:
+    print("")
+    print("  ███████╗██╗  ██╗ ██████╗")
+    print("  ██╔════╝██║  ██║██╔════╝")
+    print("  ███████╗███████║██║     ")
+    print("  ╚════██║██╔══██║██║     ")
+    print("  ███████║██║  ██║╚██████╗")
+    print("  ╚══════╝╚═╝  ╚═╝ ╚═════╝  Risk ML Service")
+    print("")
+    print(f"  Model  : {MODEL_RUNTIME.describe()}")
+    print("  Endpoints:")
+    print("    POST  /score     — score a file link")
+    print("    POST  /feedback  — submit a verdict")
+    print("    GET   /healthz   — health check")
+    print("")
+    print("  Running on http://0.0.0.0:8000")
+    print("")
+
+
 @app.get("/healthz")
 def healthz() -> dict:
     return {"status": "ok", "model": MODEL_RUNTIME.describe()}
@@ -108,3 +128,8 @@ def _blend_probabilities(rule_probability: float, structured_probability: float 
         weight_total += 0.15
 
     return weighted / max(weight_total, 1e-9)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True, log_level="warning")

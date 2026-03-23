@@ -1,3 +1,12 @@
+```
+  ███████╗██╗  ██╗ ██████╗
+  ██╔════╝██║  ██║██╔════╝
+  ███████╗███████║██║
+  ╚════██║██╔══██║██║
+  ███████║██║  ██║╚██████╗
+  ╚══════╝╚═╝  ╚═╝ ╚═════╝  Risk ML Service
+```
+
 # SHC Risk ML Service
 
 Python microservice for malware/phishing risk scoring used by SHC shared links.
