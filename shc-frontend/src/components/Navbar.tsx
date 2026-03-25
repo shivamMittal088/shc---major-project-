@@ -6,20 +6,16 @@ import Logo from "./ui/logo";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Activity, BarChart3, FolderOpen, Wallet } from "lucide-react";
+import { Activity, BarChart3, FolderOpen } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Overview", icon: BarChart3 },
   { href: "/files", label: "My Files", icon: FolderOpen },
-  { href: "/subscription", label: "Subscription", icon: Wallet },
 ];
 
 function getPageTitle(pathname: string): string {
   if (pathname.startsWith("/files")) {
     return "My Files";
-  }
-  if (pathname.startsWith("/subscription")) {
-    return "Subscription";
   }
 
   return "Overview";
@@ -75,7 +71,7 @@ export default function Navbar() {
       </div>
 
       <div className="border-t border-white/10 px-3 py-2 md:hidden">
-        <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;

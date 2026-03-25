@@ -98,18 +98,6 @@ export default async function ShcFiles({
       <PageLoadTimeReporter pathname="/files" label={loadTimeLabel} />
       <AnimatedPanel hoverLift={false} className="overflow-hidden rounded-[30px] border border-white/10 bg-gradient-to-br from-cyan-500/12 via-white/[0.04] to-indigo-500/12 px-6 py-6 shadow-[0_34px_110px_-70px_rgba(56,189,248,1)] backdrop-blur-2xl">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/15 bg-cyan-400/10 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.24em] text-cyan-100">
-              <Code2 className="h-3.5 w-3.5" />
-              Snippet vault
-            </div>
-            <h1 className="mt-4 text-xl font-semibold tracking-tight text-white md:text-2xl">
-              Curate every shared file from one sharp workspace.
-            </h1>
-            <p className="mt-3 max-w-2xl text-xs leading-5 text-slate-300">
-              Search, publish, and edit files with a layout tuned for fast developer workflows.
-            </p>
-          </div>
 
           <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[420px]">
             {[

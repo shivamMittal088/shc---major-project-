@@ -2,7 +2,6 @@
 
 import { api } from "@/lib/api";
 import { cookies } from "next/headers";
-import { permanentRedirect } from "next/navigation";
 
 export async function submitLoginForm(data: {
   name: string;
@@ -29,5 +28,4 @@ export async function submitLoginForm(data: {
     path: "/",
     httpOnly: true,
   });
-  permanentRedirect("/");
 }

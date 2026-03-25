@@ -4,16 +4,12 @@ import {
   ActivitySquare,
   ArrowUpRight,
   BarChart3,
-  CloudCog,
   FileCode2,
-  HardDrive,
-  Lock,
   Sparkles,
 } from "lucide-react";
 import { formatPageLoadTime } from "@/lib/page-load-time";
 import BackendUnavailableNotice from "@/components/BackendUnavailableNotice";
 import PageLoadTimeReporter from "@/components/PageLoadTimeReporter";
-import { formatBytes } from "@/lib/utils";
 import { dayjs } from "@/lib/dayjs";
 import AnimatedPanel from "@/components/ui/animated-panel";
 import Link from "next/link";
@@ -53,9 +49,6 @@ export default async function DashboardPage() {
   }
 
   const loadTimeLabel = formatPageLoadTime(Date.now() - startedAt);
-  const storageUsedBytes =
-    user.subscription.subscription_plan.max_storage_bytes -
-    user.subscription.storage_remaining_bytes;
   const recentFilesThisWeek = recentFiles.results.filter((file) => {
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     return new Date(file.created_at).getTime() >= sevenDaysAgo;
@@ -63,63 +56,6 @@ export default async function DashboardPage() {
   const recentSharedFiles = recentFiles.results.filter((file) => file.is_public).slice(0, 4);
   const fallbackRecentFiles = recentFiles.results.slice(0, 4);
   const filesToShow = recentSharedFiles.length > 0 ? recentSharedFiles : fallbackRecentFiles;
-  const usageSections = [
-    {
-      label: "Storage used",
-      value: `${Math.min(
-        100,
-        Math.round(
-          (storageUsedBytes / user.subscription.subscription_plan.max_storage_bytes) * 100
-        )
-      )}%`,
-      width: Math.min(
-        100,
-        Math.round((storageUsedBytes / user.subscription.subscription_plan.max_storage_bytes) * 100)
-      ),
-      tone: "from-cyan-400 to-blue-500",
-      detail: `${formatBytes(storageUsedBytes)} of ${formatBytes(
-        user.subscription.subscription_plan.max_storage_bytes
-      )}`,
-    },
-    {
-      label: "Write budget",
-      value: `${Math.max(
-        0,
-        user.subscription.subscription_plan.max_daily_writes -
-          user.subscription.today_remaining_writes
-      )}/${user.subscription.subscription_plan.max_daily_writes}`,
-      width: Math.min(
-        100,
-        Math.round(
-          ((user.subscription.subscription_plan.max_daily_writes -
-            user.subscription.today_remaining_writes) /
-            user.subscription.subscription_plan.max_daily_writes) *
-            100
-        )
-      ),
-      tone: "from-fuchsia-400 to-violet-500",
-      detail: `${user.subscription.today_remaining_writes} writes left today`,
-    },
-    {
-      label: "Read budget",
-      value: `${Math.max(
-        0,
-        user.subscription.subscription_plan.max_daily_reads -
-          user.subscription.today_remaining_reads
-      )}/${user.subscription.subscription_plan.max_daily_reads}`,
-      width: Math.min(
-        100,
-        Math.round(
-          ((user.subscription.subscription_plan.max_daily_reads -
-            user.subscription.today_remaining_reads) /
-            user.subscription.subscription_plan.max_daily_reads) *
-            100
-        )
-      ),
-      tone: "from-emerald-400 to-teal-500",
-      detail: `${user.subscription.today_remaining_reads} reads left today`,
-    },
-  ];
 
   return (
     <div className="container mx-auto max-w-7xl space-y-2 p-0 md:p-0.5">
@@ -139,13 +75,8 @@ export default async function DashboardPage() {
             </p>
           </div>
 
-          <div className="grid gap-1.5 sm:grid-cols-3 xl:min-w-[360px]">
+          <div className="grid gap-1.5 sm:grid-cols-2 xl:min-w-[240px]">
             {[
-              {
-                label: "Plan",
-                value: user.subscription.subscription_plan.name,
-                meta: user.subscription.status,
-              },
               {
                 label: "Load time",
                 value: loadTimeLabel,
@@ -167,7 +98,7 @@ export default async function DashboardPage() {
         </div>
       </AnimatedPanel>
 
-      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-2 md:grid-cols-2">
         {[
           {
             label: "Total Files",
@@ -182,20 +113,6 @@ export default async function DashboardPage() {
             detail: "Created in the last 7 days",
             icon: Sparkles,
             tone: "from-fuchsia-400/18 to-violet-500/10 text-fuchsia-100",
-          },
-          {
-            label: "Storage Used",
-            value: formatBytes(storageUsedBytes),
-            detail: `${formatBytes(user.subscription.storage_remaining_bytes)} left in plan`,
-            icon: HardDrive,
-            tone: "from-emerald-400/18 to-teal-500/10 text-emerald-100",
-          },
-          {
-            label: "Plan Status",
-            value: user.subscription.status,
-            detail: `${user.subscription.subscription_plan.name} workspace active`,
-            icon: CloudCog,
-            tone: "from-amber-400/18 to-orange-500/10 text-amber-100",
           },
         ].map((card, index) => {
           const Icon = card.icon;
@@ -222,7 +139,7 @@ export default async function DashboardPage() {
         })}
       </div>
 
-      <div className="grid gap-2 lg:grid-cols-[1.25fr_0.75fr]">
+      <div className="grid gap-2">
         <AnimatedPanel delay={0.08} className="rounded-[18px] border border-white/10 bg-white/[0.04] p-3 shadow-[0_18px_50px_-38px_rgba(56,189,248,0.7)] backdrop-blur-2xl">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -269,44 +186,6 @@ export default async function DashboardPage() {
                 </Link>
               </div>
             ))}
-          </div>
-        </AnimatedPanel>
-
-        <AnimatedPanel delay={0.12} className="rounded-[18px] border border-white/10 bg-white/[0.04] p-3 shadow-[0_18px_50px_-38px_rgba(168,85,247,0.55)] backdrop-blur-2xl">
-          <p className="text-[8px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-            Capacity runway
-          </p>
-          <h2 className="mt-1 text-xs font-semibold text-white">Usage snapshot</h2>
-          <div className="mt-2.5 space-y-2.5">
-            {usageSections.map((section) => (
-              <div key={section.label}>
-                <div className="mb-1 flex items-center justify-between gap-3">
-                  <span className="text-[9px] font-medium text-slate-200">{section.label}</span>
-                  <span className="text-[9px] font-semibold text-white">{section.value}</span>
-                </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
-                  <div
-                    className={`h-full rounded-full bg-gradient-to-r ${section.tone}`}
-                    style={{ width: `${section.width}%` }}
-                  />
-                </div>
-                <p className="mt-0.5 text-[9px] text-slate-400">{section.detail}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-2.5 rounded-[12px] border border-white/10 bg-gradient-to-br from-indigo-500/14 to-transparent px-2.5 py-2.5">
-            <div className="flex items-center gap-1.5 text-[10px] font-semibold text-white">
-              <Lock className="h-3.5 w-3.5 text-cyan-200" />
-              Recommended next move
-            </div>
-            <p className="mt-1 text-[9px] leading-4 text-slate-300">
-              Keep your most reusable snippets public and archive low-value uploads before storage reaches the plan ceiling.
-            </p>
-            <Link href="/subscription" className="mt-1.5 inline-flex items-center gap-1 text-[9px] font-semibold text-cyan-200 hover:text-cyan-100">
-              Review subscription options
-              <ArrowUpRight className="h-3 w-3" />
-            </Link>
           </div>
         </AnimatedPanel>
       </div>

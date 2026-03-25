@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowUpRight, BarChart3, DollarSign, Files } from "lucide-react";
+import { ArrowUpRight, BarChart3, Files } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -24,12 +24,6 @@ const MENUS = [
     name: "My Files",
     icon: Files,
     hint: "Manage uploads",
-  },
-  {
-    pathname: "/subscription",
-    name: "Subscription",
-    icon: DollarSign,
-    hint: "Plan and billing",
   },
 ];
 

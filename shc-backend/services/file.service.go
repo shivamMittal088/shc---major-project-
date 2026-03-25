@@ -9,8 +9,7 @@ import (
 )
 
 type FileService struct {
-	dbService           *DbService
-	subscriptionService *SubscriptionService
+	dbService *DbService
 }
 
 type userFileCount struct {
@@ -18,19 +17,15 @@ type userFileCount struct {
 	Total  int64
 }
 
-func NewFileService(dbService *DbService, subscriptionService *SubscriptionService) *FileService {
+func NewFileService(dbService *DbService) *FileService {
 	return &FileService{
-		dbService:           dbService,
-		subscriptionService: subscriptionService,
+		dbService: dbService,
 	}
 }
 
 func (fs *FileService) FindFileById(fileId uuid.UUID) (*m.File, error) {
 	var file m.File
 	if err := fs.dbService.Db.Where("id = ?", fileId).First(&file).Error; err != nil {
-		return nil, err
-	}
-	if err := fs.subscriptionService.IncrementReads(file.UserId); err != nil {
 		return nil, err
 	}
 
@@ -112,12 +107,6 @@ func (fs *FileService) FindFilesByUserId(user_id uuid.UUID, search string, langu
 }
 
 func (fs *FileService) CreateFile(file *m.File) (*m.File, error) {
-	err := fs.subscriptionService.IncrementWrites(file.UserId, file.Size, true)
-
-	if err != nil {
-		return nil, err
-	}
-
 	if err := fs.dbService.Db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&file).Error; err != nil {
 			return err

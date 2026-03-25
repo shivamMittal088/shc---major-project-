@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { submitLoginForm } from "@/server-actions/submit-otp.action";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { sendOtp } from "@/server-actions/send-otp.action";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -35,6 +36,7 @@ const LoginFormSchema = z.object({
 export type LoginFormType = z.infer<typeof LoginFormSchema>;
 
 export default function LoginForm() {
+  const router = useRouter();
   const [otpStatus, setOtpStatus] = useState<
     "pending" | "sending" | "sent" | "error"
   >("pending");
@@ -54,6 +56,7 @@ export default function LoginForm() {
       success: "Logged in successfully",
       error: "Something went wrong",
     });
+    router.push("/");
   };
 
   const onClickSendOtpButton = async () => {

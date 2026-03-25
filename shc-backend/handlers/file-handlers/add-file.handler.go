@@ -46,20 +46,6 @@ func AddFileToDb(c fiber.Ctx, as *services.AppService) error {
 
 	fileSize := body.FileSize
 
-	subscription, err := as.SubscriptionService.FindSubscriptionByUserId(userId)
-
-	if err != nil {
-		return err
-	}
-
-	if subscription.TodayRemainingWrites == 0 {
-		return &fiber.Error{Code: fiber.StatusPaymentRequired, Message: "You have exceeded your daily write limit"}
-	}
-
-	if subscription.StorageRemainingBytes < fileSize {
-		return &fiber.Error{Code: fiber.StatusPaymentRequired, Message: "You have exceeded your storage limit"}
-	}
-
 	ctx := context.Background()
 	key := aws.String(userId.String() + "/" + uuid.NewString() + "_" + strings.Replace(body.FileName, " ", "_", -1))
 	uploadURL := ""
