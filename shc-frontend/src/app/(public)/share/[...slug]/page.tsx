@@ -22,8 +22,8 @@ export default async function ShcFile({
   }
 
   return (
-    <div className="w-full h-full relative">
-      <nav className="absolute w-full bg-white z-10">
+    <div className="w-full h-full flex flex-col">
+      <nav className="w-full bg-white z-10 border-b border-slate-200">
         <div className="container">
           <div className="py-[18px] flex items-center justify-between">
             <div>
@@ -59,7 +59,7 @@ export default async function ShcFile({
           </div>
         </div>
       </nav>
-      <section className="px-4 pb-4 pt-24 bg-slate-200 min-h-full h-full">
+      <section className="px-4 pb-4 pt-4 bg-slate-200 flex-1 overflow-auto min-h-0">
         <Suspense fallback={<LoadingPreview />}>
           <ShcFilePreview file={file} />
         </Suspense>

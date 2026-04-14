@@ -10,6 +10,8 @@ export type XAIExplanation = {
   shap_top_features: SHAPFeatureContribution[];
   faithfulness_score: number | null;
   faithfulness_detail: string[];
+  coverage_gap_score: number | null;
+  coverage_gap_detail: string[];
 };
 
 export type RiskAnalysis = {

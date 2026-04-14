@@ -1,5 +1,16 @@
+"use client";
 import { ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
 import { XAIExplanation } from "@/types/file.type";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+} from "recharts";
 
 type RiskLevel = "Low" | "Medium" | "High";
 
@@ -76,30 +87,65 @@ export default function RiskBadge({ score, level, explanations, xai }: RiskBadge
             Model explanation (SHAP)
           </p>
 
-          <div className="space-y-1.5">
-            {xai.shap_top_features.map((feat) => {
-              const pct = Math.round((Math.abs(feat.shap_value) / maxShap) * 100);
-              const isRisk = feat.direction === "increases_risk";
-              return (
-                <div key={feat.feature_key} className="flex items-center gap-2">
-                  <span className="w-36 shrink-0 truncate text-[10px] text-slate-600 dark:text-slate-300">
-                    {feat.feature}
-                  </span>
-                  <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${isRisk ? "bg-red-400 dark:bg-red-500" : "bg-emerald-400 dark:bg-emerald-500"}`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <span
-                    className={`text-[10px] font-mono w-14 text-right ${isRisk ? "text-red-500 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}
-                  >
-                    {feat.shap_value > 0 ? "+" : ""}{feat.shap_value.toFixed(3)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <ResponsiveContainer
+            width="100%"
+            height={xai.shap_top_features.length * 32 + 24}
+          >
+            <BarChart
+              layout="vertical"
+              data={xai.shap_top_features.map((f) => ({
+                name: f.feature,
+                value: f.shap_value,
+                direction: f.direction,
+                key: f.feature_key,
+              }))}
+              margin={{ top: 0, right: 48, bottom: 0, left: 4 }}
+            >
+              <XAxis
+                type="number"
+                domain={[-maxShap * 1.15, maxShap * 1.15]}
+                tick={{ fontSize: 9, fill: "#94a3b8" }}
+                tickFormatter={(v: number) => v.toFixed(2)}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                width={130}
+                tick={{ fontSize: 10, fill: "#64748b" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <ReferenceLine x={0} stroke="#cbd5e1" strokeWidth={1} />
+              <Tooltip
+                cursor={{ fill: "rgba(148,163,184,0.08)" }}
+                formatter={(value: number) => [
+                  (value > 0 ? "+" : "") + value.toFixed(4),
+                  "SHAP value",
+                ]}
+                contentStyle={{
+                  fontSize: 11,
+                  background: "#1e293b",
+                  border: "1px solid #334155",
+                  borderRadius: 6,
+                  color: "#e2e8f0",
+                }}
+              />
+              <Bar dataKey="value" radius={[3, 3, 3, 3]} maxBarSize={18}>
+                {xai.shap_top_features.map((feat) => (
+                  <Cell
+                    key={feat.feature_key}
+                    fill={
+                      feat.direction === "increases_risk"
+                        ? "#f87171"
+                        : "#34d399"
+                    }
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
 
           {/* Faithfulness score */}
           {xai.faithfulness_score != null && (
@@ -119,6 +165,43 @@ export default function RiskBadge({ score, level, explanations, xai }: RiskBadge
                 {Math.round(xai.faithfulness_score * 100)}%
               </span>
             </div>
+          )}
+
+          {/* Coverage gap score */}
+          {xai.coverage_gap_score != null && (
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                Rule coverage gap
+              </span>
+              <span
+                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                  xai.coverage_gap_score <= 0.2
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
+                    : xai.coverage_gap_score <= 0.5
+                    ? "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
+                    : "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300"
+                }`}
+              >
+                {Math.round(xai.coverage_gap_score * 100)}%
+              </span>
+            </div>
+          )}
+
+          {/* Coverage gap detail */}
+          {(xai.coverage_gap_detail?.length ?? 0) > 0 && (
+            <ul className="space-y-0.5">
+              {xai.coverage_gap_detail!.map((detail, i) => {
+                const isCovered = detail.startsWith("COVERED");
+                return (
+                  <li
+                    key={i}
+                    className={`text-[10px] leading-tight ${isCovered ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}
+                  >
+                    {detail}
+                  </li>
+                );
+              })}
+            </ul>
           )}
 
           {/* Faithfulness detail */}
