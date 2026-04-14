@@ -42,6 +42,7 @@ export default async function ShcFile({
                     score={file.risk.risk_score}
                     level={file.risk.risk_level}
                     explanations={file.risk.explanations}
+                    xai={file.risk.xai}
                   />
                 </div>
               ) : null}

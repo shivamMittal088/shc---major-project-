@@ -5,3 +5,4 @@ scikit-learn==1.6.1
 joblib==1.5.1
 pydantic==2.11.7
 python-multipart==0.0.20
+shap==0.46.0

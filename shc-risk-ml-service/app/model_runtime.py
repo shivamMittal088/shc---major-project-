@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 import joblib
 import numpy as np
+
+from app.shap_explainer import SHAPExplainer
 
 
 class ModelRuntime:
@@ -13,7 +15,8 @@ class ModelRuntime:
         self.model_dir = model_dir
         self.structured_model = None
         self.text_model = None
-        self.feature_order = []
+        self.feature_order: List[str] = []
+        self.shap_explainer: Optional[SHAPExplainer] = None
         self._load()
 
     def _load(self) -> None:
@@ -29,6 +32,9 @@ class ModelRuntime:
 
         if text_file.exists():
             self.text_model = joblib.load(text_file)
+
+        if self.structured_model is not None and self.feature_order:
+            self.shap_explainer = SHAPExplainer(self.structured_model, self.feature_order)
 
     def predict_structured(self, features: Dict[str, float]) -> Optional[float]:
         if self.structured_model is None or not self.feature_order:

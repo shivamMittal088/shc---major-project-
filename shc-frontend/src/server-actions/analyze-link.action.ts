@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { XAIExplanation } from "@/types/file.type";
 
 export type AnalyzeLinkPayload = {
   file_id?: string;
@@ -20,6 +21,7 @@ export type AnalyzeLinkResult = {
   risk_level: "Low" | "Medium" | "High";
   explanations: string[];
   model_used: string;
+  xai?: XAIExplanation | null;
   cached?: boolean;
 };
 

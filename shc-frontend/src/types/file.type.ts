@@ -1,8 +1,23 @@
+export type SHAPFeatureContribution = {
+  feature: string;
+  feature_key: string;
+  shap_value: number;
+  direction: "increases_risk" | "decreases_risk";
+  rank: number;
+};
+
+export type XAIExplanation = {
+  shap_top_features: SHAPFeatureContribution[];
+  faithfulness_score: number | null;
+  faithfulness_detail: string[];
+};
+
 export type RiskAnalysis = {
   risk_score: number;
   risk_level: "Low" | "Medium" | "High";
   explanations: string[];
   model_used: string;
+  xai?: XAIExplanation | null;
   cached?: boolean;
 };
 

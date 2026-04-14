@@ -29,12 +29,27 @@ type RiskAnalyzeRequest struct {
 	FileContentBase64 string   `json:"file_content_base64,omitempty"`
 }
 
+type SHAPFeatureContribution struct {
+	Feature    string  `json:"feature"`
+	FeatureKey string  `json:"feature_key"`
+	SHAPValue  float64 `json:"shap_value"`
+	Direction  string  `json:"direction"`
+	Rank       int     `json:"rank"`
+}
+
+type XAIExplanation struct {
+	SHAPTopFeatures    []SHAPFeatureContribution `json:"shap_top_features"`
+	FaithfulnessScore  *float64                  `json:"faithfulness_score"`
+	FaithfulnessDetail []string                  `json:"faithfulness_detail"`
+}
+
 type RiskAnalyzeResponse struct {
-	RiskScore    int      `json:"risk_score"`
-	RiskLevel    string   `json:"risk_level"`
-	Explanations []string `json:"explanations"`
-	ModelUsed    string   `json:"model_used"`
-	Cached       bool     `json:"cached"`
+	RiskScore    int             `json:"risk_score"`
+	RiskLevel    string          `json:"risk_level"`
+	Explanations []string        `json:"explanations"`
+	ModelUsed    string          `json:"model_used"`
+	XAI          *XAIExplanation `json:"xai,omitempty"`
+	Cached       bool            `json:"cached"`
 }
 
 type RiskScoringService struct {
@@ -138,6 +153,14 @@ func (rs *RiskScoringService) analyzeWithRemoteModel(req RiskAnalyzeRequest) (*R
 	}
 	if result.Explanations == nil {
 		result.Explanations = []string{}
+	}
+	if result.XAI != nil {
+		if result.XAI.SHAPTopFeatures == nil {
+			result.XAI.SHAPTopFeatures = []SHAPFeatureContribution{}
+		}
+		if result.XAI.FaithfulnessDetail == nil {
+			result.XAI.FaithfulnessDetail = []string{}
+		}
 	}
 
 	return result, nil

@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from app.feature_extractor import extract_features
 from app.model_runtime import ModelRuntime
 from app.rules import baseline_score
-from app.schemas import FeedbackRequest, ScoreRequest, ScoreResponse
+from app.schemas import FeedbackRequest, ScoreRequest, ScoreResponse, SHAPFeatureContribution, XAIExplanation
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
@@ -29,7 +29,9 @@ async def on_startup() -> None:
     print("  ███████║██║  ██║╚██████╗")
     print("  ╚══════╝╚═╝  ╚═╝ ╚═════╝  Risk ML Service")
     print("")
+    shap_status = "available" if (MODEL_RUNTIME.shap_explainer and MODEL_RUNTIME.shap_explainer.available) else "unavailable"
     print(f"  Model  : {MODEL_RUNTIME.describe()}")
+    print(f"  SHAP   : {shap_status}")
     print("  Endpoints:")
     print("    POST  /score     — score a file link")
     print("    POST  /feedback  — submit a verdict")
@@ -41,7 +43,10 @@ async def on_startup() -> None:
 
 @app.get("/healthz")
 def healthz() -> dict:
-    return {"status": "ok", "model": MODEL_RUNTIME.describe()}
+    shap_available = bool(
+        MODEL_RUNTIME.shap_explainer and MODEL_RUNTIME.shap_explainer.available
+    )
+    return {"status": "ok", "model": MODEL_RUNTIME.describe(), "shap": shap_available}
 
 
 @app.post("/score", response_model=ScoreResponse)
@@ -79,11 +84,14 @@ def score(payload: ScoreRequest) -> ScoreResponse:
         if len(unique_explanations) >= 6:
             break
 
+    xai_block = _build_xai(features, reasons)
+
     return ScoreResponse(
         risk_score=final_score,
         risk_level=_risk_level(final_score),
         explanations=unique_explanations,
         model_used=MODEL_RUNTIME.describe(),
+        xai=xai_block,
     )
 
 
@@ -102,6 +110,25 @@ def submit_feedback(feedback: FeedbackRequest) -> dict:
         handle.write(json.dumps(event) + "\n")
 
     return {"status": "accepted", "message": "feedback stored for retraining"}
+
+
+def _build_xai(features: dict, rule_reasons: list) -> XAIExplanation | None:
+    """Run SHAP and return the XAIExplanation block, or None if unavailable."""
+    explainer = MODEL_RUNTIME.shap_explainer
+    if explainer is None or not explainer.available:
+        return None
+
+    raw = explainer.explain(features, rule_reasons, top_n=6)
+    if not raw["shap_top_features"]:
+        return None
+
+    return XAIExplanation(
+        shap_top_features=[
+            SHAPFeatureContribution(**item) for item in raw["shap_top_features"]
+        ],
+        faithfulness_score=raw["faithfulness_score"],
+        faithfulness_detail=raw["faithfulness_detail"],
+    )
 
 
 def _risk_level(score: int) -> str:
