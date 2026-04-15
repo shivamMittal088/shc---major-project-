@@ -41,6 +41,9 @@ type XAIExplanation struct {
 	SHAPTopFeatures    []SHAPFeatureContribution `json:"shap_top_features"`
 	FaithfulnessScore  *float64                  `json:"faithfulness_score"`
 	FaithfulnessDetail []string                  `json:"faithfulness_detail"`
+	CoverageGapScore   *float64                  `json:"coverage_gap_score"`
+	CoverageGapDetail  []string                  `json:"coverage_gap_detail"`
+	SuggestedRules     []string                  `json:"suggested_rules"`
 }
 
 type RiskAnalyzeResponse struct {
@@ -160,6 +163,12 @@ func (rs *RiskScoringService) analyzeWithRemoteModel(req RiskAnalyzeRequest) (*R
 		}
 		if result.XAI.FaithfulnessDetail == nil {
 			result.XAI.FaithfulnessDetail = []string{}
+		}
+		if result.XAI.CoverageGapDetail == nil {
+			result.XAI.CoverageGapDetail = []string{}
+		}
+		if result.XAI.SuggestedRules == nil {
+			result.XAI.SuggestedRules = []string{}
 		}
 	}
 

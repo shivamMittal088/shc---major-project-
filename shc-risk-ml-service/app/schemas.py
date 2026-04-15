@@ -37,16 +37,20 @@ class XAIExplanation(BaseModel):
 
     ``faithfulness_score`` measures the fraction of rule-based reasons
     that agree in direction with the model's own SHAP-derived attribution.
-    A score of 1.0 means every rule that fired was confirmed by the model
-    internally; 0.0 means the rules are completely contradicted.
 
-    ``faithfulness_detail`` provides one annotation per mappable rule for
-    reproducible comparison — the primary data for the paper evaluation.
+    ``coverage_gap_score`` measures the fraction of top risk-increasing
+    SHAP features that have NO corresponding rule in the rule engine.
+
+    ``suggested_rules`` contains auto-generated Python rule snippets for
+    each coverage-gap feature, derived from the observed feature value.
     """
 
     shap_top_features: List[SHAPFeatureContribution]
     faithfulness_score: Optional[float]
     faithfulness_detail: List[str]
+    coverage_gap_score: Optional[float]
+    coverage_gap_detail: List[str]
+    suggested_rules: List[str]
 
 
 class ScoreResponse(BaseModel):

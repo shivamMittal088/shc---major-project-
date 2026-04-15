@@ -128,6 +128,9 @@ def _build_xai(features: dict, rule_reasons: list) -> XAIExplanation | None:
         ],
         faithfulness_score=raw["faithfulness_score"],
         faithfulness_detail=raw["faithfulness_detail"],
+        coverage_gap_score=raw.get("coverage_gap_score"),
+        coverage_gap_detail=raw.get("coverage_gap_detail", []),
+        suggested_rules=raw.get("suggested_rules", []),
     )
 
 

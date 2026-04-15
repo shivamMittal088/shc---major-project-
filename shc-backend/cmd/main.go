@@ -27,7 +27,7 @@ func main() {
 
 	// we are storing rate limit data in redis for 30 seconds
 	app.Use(limiter.New(limiter.Config{
-		Max:        15,
+		Max:        100,
 		Expiration: 30 * time.Second,
 		Storage:    services.NewRateLimitStorage(),
 		KeyGenerator: func(c fiber.Ctx) string {

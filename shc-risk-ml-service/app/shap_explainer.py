@@ -29,6 +29,11 @@ FEATURE_LABELS: Dict[str, str] = {
 # Used to compute faithfulness alignment between rules and SHAP.
 # ---------------------------------------------------------------------------
 
+# Features that have at least one rule covering them
+RULE_COVERED_FEATURES: set = set()
+
+# Populated after RULE_TO_FEATURE is defined (see bottom of block)
+
 RULE_TO_FEATURE: Dict[str, str] = {
     "Suspicious executable/script file extension": "is_executable_ext",
     "Contains macro or script indicators": "contains_macro_indicator",
@@ -45,6 +50,9 @@ RULE_TO_FEATURE: Dict[str, str] = {
     "File has unusually high download volume": "download_frequency",
     "Upload source is unknown": "unknown_upload_source",
 }
+
+# All features that appear as a value in RULE_TO_FEATURE have at least one rule
+RULE_COVERED_FEATURES = set(RULE_TO_FEATURE.values())
 
 
 class SHAPExplainer:
@@ -153,10 +161,19 @@ class SHAPExplainer:
             rule_reasons, malicious_shap, self._feature_order
         )
 
+        coverage_gap_score, coverage_gap_detail = _compute_coverage_gap(
+            top_features
+        )
+
+        suggested_rules = _suggest_rules(top_features, features)
+
         return {
             "shap_top_features": top_features,
             "faithfulness_score": round(faithfulness_score, 3),
             "faithfulness_detail": faithfulness_detail,
+            "coverage_gap_score": round(coverage_gap_score, 3),
+            "coverage_gap_detail": coverage_gap_detail,
+            "suggested_rules": suggested_rules,
         }
 
 
@@ -216,9 +233,93 @@ def _compute_faithfulness(
     return faithfulness, detail
 
 
+# ---------------------------------------------------------------------------
+# Coverage gap computation
+# ---------------------------------------------------------------------------
+
+
+def _compute_coverage_gap(
+    top_features: List[Dict],
+) -> Tuple[float, List[str]]:
+    """
+    For the top risk-increasing SHAP features, check whether each one has a
+    corresponding rule in the rule engine.
+
+    A high coverage gap means the model is relying heavily on features that
+    the rule engine does not address — explaining why rule-based explanations
+    diverge from the ML verdict.
+    """
+    risk_drivers = [f for f in top_features if f["direction"] == "increases_risk"]
+    if not risk_drivers:
+        return 0.0, []
+
+    gap_count = 0
+    detail: List[str] = []
+    for feat in risk_drivers:
+        key = feat["feature_key"]
+        label = feat["feature"]
+        if key in RULE_COVERED_FEATURES:
+            detail.append(f"COVERED: '{label}' has a corresponding rule")
+        else:
+            gap_count += 1
+            detail.append(f"GAP: '{label}' has NO corresponding rule")
+
+    score = float(gap_count) / float(len(risk_drivers))
+    return score, detail
+
+
+# ---------------------------------------------------------------------------
+# Rule suggestion
+# ---------------------------------------------------------------------------
+
+# Human-readable templates for auto-suggested rules.
+# Each entry maps feature_key -> a callable that takes the feature value
+# and SHAP direction and returns a suggested rule string.
+_RULE_TEMPLATES: Dict[str, str] = {
+    "size_mb": 'if features["size_mb"] > {val:.2f}: score += 10  # SHAP-derived: large file increases risk',
+    "text_length": 'if features["text_length"] > {val:.0f}: score += 8  # SHAP-derived: long text content increases risk',
+    "download_frequency": 'if features["download_frequency"] > {val:.0f}: score += 10  # SHAP-derived: high download frequency increases risk',
+    "share_frequency": 'if features["share_frequency"] > {val:.0f}: score += 10  # SHAP-derived: high share frequency increases risk',
+    "domain_risk": 'if features["domain_risk"] > {val:.2f}: score += 18  # SHAP-derived: elevated domain risk score',
+    "entropy": 'if features["entropy"] > {val:.2f}: score += 15  # SHAP-derived: high content entropy suggests obfuscation',
+    "is_archive": 'if features["is_archive"] > 0: score += 8  # SHAP-derived: archive files increase risk',
+    "unknown_upload_source": 'if features["unknown_upload_source"] > 0: score += 12  # SHAP-derived: unknown upload source',
+}
+
+
+def _suggest_rules(
+    top_features: List[Dict],
+    features: Dict[str, float],
+) -> List[str]:
+    """
+    For every risk-increasing top feature that has NO rule coverage,
+    generate a concrete Python rule suggestion based on the observed
+    feature value and SHAP direction.
+    """
+    suggestions: List[str] = []
+    for feat in top_features:
+        if feat["direction"] != "increases_risk":
+            continue
+        key = feat["feature_key"]
+        if key in RULE_COVERED_FEATURES:
+            continue  # already covered
+        template = _RULE_TEMPLATES.get(key)
+        if template is None:
+            continue
+        val = features.get(key, 0.0)
+        try:
+            suggestions.append(template.format(val=val))
+        except (KeyError, ValueError):
+            pass
+    return suggestions
+
+
 def _empty_result() -> Dict:
     return {
         "shap_top_features": [],
         "faithfulness_score": None,
         "faithfulness_detail": [],
+        "coverage_gap_score": None,
+        "coverage_gap_detail": [],
+        "suggested_rules": [],
     }

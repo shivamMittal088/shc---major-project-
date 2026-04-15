@@ -148,7 +148,7 @@ export default function RiskBadge({ score, level, explanations, xai }: RiskBadge
           </ResponsiveContainer>
 
           {/* Faithfulness score */}
-          {xai.faithfulness_score != null && (
+          {xai.faithfulness_score != null && (xai.faithfulness_detail?.length ?? 0) > 0 && (
             <div className="flex items-center justify-between pt-1">
               <span className="text-[10px] text-slate-500 dark:text-slate-400">
                 Rule faithfulness
@@ -168,7 +168,7 @@ export default function RiskBadge({ score, level, explanations, xai }: RiskBadge
           )}
 
           {/* Coverage gap score */}
-          {xai.coverage_gap_score != null && (
+          {xai.coverage_gap_score != null && (xai.coverage_gap_detail?.length ?? 0) > 0 && (
             <div className="flex items-center justify-between pt-1">
               <span className="text-[10px] text-slate-500 dark:text-slate-400">
                 Rule coverage gap
@@ -219,6 +219,28 @@ export default function RiskBadge({ score, level, explanations, xai }: RiskBadge
                 );
               })}
             </ul>
+          )}
+
+          {/* Suggested rules */}
+          {(xai.suggested_rules?.length ?? 0) > 0 && (
+            <div className="pt-1 border-t border-slate-100 dark:border-white/10 space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500 dark:text-violet-400">
+                SHAP-derived rule suggestions
+              </p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                These rules are auto-generated from coverage gap features. Adding them would close the explanation gap.
+              </p>
+              <ul className="space-y-1">
+                {xai.suggested_rules!.map((rule, i) => (
+                  <li
+                    key={i}
+                    className="text-[10px] font-mono bg-slate-800 dark:bg-slate-950 text-violet-300 rounded px-2 py-1 leading-relaxed whitespace-pre-wrap break-all"
+                  >
+                    {rule}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       )}

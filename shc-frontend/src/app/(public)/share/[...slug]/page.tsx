@@ -48,13 +48,19 @@ export default async function ShcFile({
               ) : null}
             </div>
 
-            <div>
+            <div className="flex flex-col items-end gap-2">
               <DownloadButton
                 fileId={file.id}
                 fileName={file.name}
                 fileUrl={file.download_url}
                 fileExtension={file.extension}
               />
+              <a
+                href="/faq"
+                className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                Help &amp; FAQ
+              </a>
             </div>
           </div>
         </div>

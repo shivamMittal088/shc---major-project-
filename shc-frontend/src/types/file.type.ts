@@ -12,6 +12,7 @@ export type XAIExplanation = {
   faithfulness_detail: string[];
   coverage_gap_score: number | null;
   coverage_gap_detail: string[];
+  suggested_rules: string[];
 };
 
 export type RiskAnalysis = {

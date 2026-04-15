@@ -96,6 +96,6 @@ export const config = {
      * - /share/... (shared files)
      * - /install.sh (installation script)
      */
-    "/((?!install.sh|assets|share|_next/static|_next/image|favicon.ico|files/.+).*)",
+    "/((?!install.sh|assets|share|faq|_next/static|_next/image|favicon.ico|files/.+).*)",
   ],
 };
