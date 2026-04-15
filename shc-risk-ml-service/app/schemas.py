@@ -65,3 +65,8 @@ class FeedbackRequest(BaseModel):
     verdict: Literal["safe", "malicious"]
     score_request: ScoreRequest
     notes: Optional[str] = None
+
+
+class AcceptRuleRequest(BaseModel):
+    rule: str  # The suggested rule snippet (Python expression string)
+    file_id: Optional[str] = None  # For audit trail only

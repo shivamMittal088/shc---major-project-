@@ -127,6 +127,7 @@ export default async function ShcFile({
               level={file.risk.risk_level}
               explanations={file.risk.explanations}
               xai={file.risk.xai}
+              fileId={file.id}
             />
           </aside>
         )}

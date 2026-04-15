@@ -67,3 +67,13 @@ def _dedupe(reasons: List[str]) -> List[str]:
     if not out:
         return ["No strong malicious indicators were detected"]
     return out
+
+
+# ACCEPTED RULE [2026-04-15T06:59:20.179480+00:00]
+# file_id: 7651da5f-1a49-4d74-8881-5ee63955f15b
+# if features["size_mb"] > 0.06: score += 10  # SHAP-derived: large file increases risk
+
+
+# ACCEPTED RULE [2026-04-15T06:59:31.489153+00:00]
+# file_id: 7651da5f-1a49-4d74-8881-5ee63955f15b
+# if features["size_mb"] > 0.06: score += 10  # SHAP-derived: large file increases risk

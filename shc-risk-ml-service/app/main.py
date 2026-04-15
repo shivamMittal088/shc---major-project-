@@ -9,11 +9,13 @@ from fastapi import FastAPI
 from app.feature_extractor import extract_features
 from app.model_runtime import ModelRuntime
 from app.rules import baseline_score
-from app.schemas import FeedbackRequest, ScoreRequest, ScoreResponse, SHAPFeatureContribution, XAIExplanation
+from app.schemas import AcceptRuleRequest, FeedbackRequest, ScoreRequest, ScoreResponse, SHAPFeatureContribution, XAIExplanation
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
 FEEDBACK_FILE = DATA_DIR / "feedback.ndjson"
+ACCEPTED_RULES_FILE = DATA_DIR / "accepted_rules.ndjson"
+RULES_FILE = PROJECT_ROOT / "app" / "rules.py"
 MODEL_RUNTIME = ModelRuntime(PROJECT_ROOT / "models")
 
 app = FastAPI(title="SHC Risk Scoring API", version="0.1.0")
@@ -110,6 +112,73 @@ def submit_feedback(feedback: FeedbackRequest) -> dict:
         handle.write(json.dumps(event) + "\n")
 
     return {"status": "accepted", "message": "feedback stored for retraining"}
+
+
+@app.get("/rules")
+def list_accepted_rules() -> dict:
+    """Return all accepted suggested rules."""
+    rules: list[dict] = []
+    if ACCEPTED_RULES_FILE.exists():
+        for line in ACCEPTED_RULES_FILE.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line:
+                try:
+                    rules.append(json.loads(line))
+                except json.JSONDecodeError:
+                    pass
+    return {"rules": rules, "count": len(rules)}
+
+
+@app.post("/rules/accept")
+def accept_rule(payload: AcceptRuleRequest) -> dict:
+    """
+    Accept a SHAP-derived suggested rule.
+
+    The rule snippet is appended to ``data/accepted_rules.ndjson`` for
+    audit/retraining and also injected as a comment block into
+    ``app/rules.py`` so teachers/reviewers can see it was applied.
+    """
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    # 1. Persist to audit log
+    event = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "file_id": payload.file_id,
+        "rule": payload.rule,
+    }
+    with ACCEPTED_RULES_FILE.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event) + "\n")
+
+    # 2. Append the rule as a commented block at the bottom of rules.py
+    #    so it is visible in the source file but doesn't break the engine
+    #    (implementing it as live code would require a restart anyway)
+    rules_text = RULES_FILE.read_text(encoding="utf-8")
+    marker = f"# ACCEPTED RULE [{event['ts']}]"
+    if marker not in rules_text:
+        block = (
+            f"\n\n{marker}\n"
+            f"# file_id: {payload.file_id or 'unknown'}\n"
+            + "\n".join(f"# {line}" for line in payload.rule.splitlines())
+            + "\n"
+        )
+        RULES_FILE.write_text(rules_text + block, encoding="utf-8")
+
+    return {"status": "accepted", "message": "Rule recorded and appended to rules.py"}
+
+
+@app.post("/rules/reject")
+def reject_rule(payload: AcceptRuleRequest) -> dict:
+    """Record that a suggested rule was explicitly rejected (audit log only)."""
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    event = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "file_id": payload.file_id,
+        "rule": payload.rule,
+        "action": "rejected",
+    }
+    with ACCEPTED_RULES_FILE.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event) + "\n")
+    return {"status": "ok", "message": "Rejection recorded"}
 
 
 def _build_xai(features: dict, rule_reasons: list) -> XAIExplanation | None:
