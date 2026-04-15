@@ -197,6 +197,10 @@ func (fs *FileService) IncrementViewCount(fileId uuid.UUID) error {
 	return nil
 }
 
+func (fs *FileService) SetNotarizationTx(fileId uuid.UUID, txHash string) error {
+	return fs.dbService.Db.Model(&m.File{}).Where("id = ?", fileId).Update("notarization_tx", txHash).Error
+}
+
 func (fs *FileService) DeleteAllNonUploadedFiles() error {
 	oneDayAgo := time.Now().AddDate(0, 0, -1)
 

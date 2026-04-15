@@ -32,68 +32,105 @@ export default async function ShcFile({
       : `Expires ${expiresAt.fromNow()}`
     : null;
 
+  const isExpiringSoon = expiresAt
+    ? expiresAt.diff(dayjs(), "hour") < 4
+    : false;
+
   return (
-    <div className="w-full h-full flex flex-col">
-      <nav className="w-full bg-white z-10 border-b border-slate-200">
-        <div className="container">
-          <div className="py-[18px] flex items-start justify-between gap-6">
-            <div>
+    <div className="w-full h-full flex flex-col bg-slate-50">
+      {/* ── Compact top nav ── */}
+      <nav className="w-full bg-white z-10 border-b border-slate-200 shadow-sm shrink-0">
+        <div className="px-6">
+          <div className="py-3 flex items-center justify-between gap-6">
+            {/* Left: file info */}
+            <div className="min-w-0 flex-1">
               <a
                 href="/"
-                className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition-colors mb-2"
+                className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition-colors mb-1"
               >
-                ← Back
+                ← SHC
               </a>
-              <h2 className="text-2xl font-bold leading-tight text-gray-900">
-                {file.name}
-              </h2>
-              <div>
-                <p className="text-gray-500 text-sm">
-                  Size: {formatBytes(file.size)} | Type: {file.mime_type} |{" "}
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-base font-semibold text-slate-900 truncate leading-tight">
+                  {file.name}
+                </h1>
+                <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                  {file.mime_type}
+                </span>
+                <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                  {formatBytes(file.size)}
+                </span>
+                <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-400">
                   {dayjs(file.updated_at).fromNow()}
-                  {expiryLabel && (
-                    <span className="ml-2 text-amber-600 font-medium">
-                      · {expiryLabel}
-                    </span>
-                  )}
-                </p>
+                </span>
+                {expiryLabel && (
+                  <span
+                    className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${
+                      isExpiringSoon
+                        ? "bg-red-50 text-red-600"
+                        : "bg-amber-50 text-amber-600"
+                    }`}
+                  >
+                    ⏱ {expiryLabel}
+                  </span>
+                )}
+                {file.notarization_tx && (
+                  <a
+                    href={`https://sepolia.etherscan.io/tx/${file.notarization_tx}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="File hash notarized on Ethereum Sepolia — click to verify on-chain"
+                    className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+                  >
+                    ✓ Notarized on-chain
+                  </a>
+                )}
               </div>
             </div>
 
-            <div className="flex flex-col items-end gap-3 shrink-0">
-              <div className="flex items-center gap-3">
-                <DownloadButton
-                  fileId={file.id}
-                  fileName={file.name}
-                  fileUrl={file.download_url}
-                  fileExtension={file.extension}
-                />
-              </div>
-              {file.risk ? (
-                <div className="w-80">
-                  <RiskBadge
-                    score={file.risk.risk_score}
-                    level={file.risk.risk_level}
-                    explanations={file.risk.explanations}
-                    xai={file.risk.xai}
-                  />
-                </div>
-              ) : null}
+            {/* Right: download + help */}
+            <div className="flex items-center gap-4 shrink-0">
               <a
                 href="/faq"
                 className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
               >
-                Help &amp; FAQ
+                FAQ
               </a>
+              <DownloadButton
+                fileId={file.id}
+                fileName={file.name}
+                fileUrl={file.download_url}
+                fileExtension={file.extension}
+              />
             </div>
           </div>
         </div>
       </nav>
-      <section className="px-4 pb-4 pt-4 bg-slate-200 flex-1 overflow-auto min-h-0">
-        <Suspense fallback={<LoadingPreview />}>
-          <ShcFilePreview file={file} />
-        </Suspense>
-      </section>
+
+      {/* ── Body: preview + optional risk sidebar ── */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Preview */}
+        <main className="flex-1 overflow-auto p-4">
+          <Suspense fallback={<LoadingPreview />}>
+            <ShcFilePreview file={file} />
+          </Suspense>
+        </main>
+
+        {/* Risk sidebar */}
+        {file.risk && (
+          <aside className="w-80 shrink-0 border-l border-slate-200 bg-white overflow-y-auto p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-3">
+              Risk Analysis
+            </p>
+            <RiskBadge
+              score={file.risk.risk_score}
+              level={file.risk.risk_level}
+              explanations={file.risk.explanations}
+              xai={file.risk.xai}
+            />
+          </aside>
+        )}
+      </div>
     </div>
   );
 }

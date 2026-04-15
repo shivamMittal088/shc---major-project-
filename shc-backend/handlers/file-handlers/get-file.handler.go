@@ -80,17 +80,18 @@ func GetFile(c fiber.Ctx, as *services.AppService) error {
 	})
 
 	return c.JSON(fiber.Map{
-		"download_url":  downloadUrl,
-		"id":            file.ID,
-		"name":          file.Name,
-		"size":          file.Size,
-		"is_public":     file.IsPublic,
-		"mime_type":     file.MimeType,
-		"extension":     file.Extension,
-		"user_id":       file.UserId,
-		"upload_status": file.UploadStatus,
-		"updated_at":    file.UpdatedAt,
-		"expires_at":    file.ExpiresAt,
-		"risk":          risk,
+		"download_url":    downloadUrl,
+		"id":              file.ID,
+		"name":            file.Name,
+		"size":            file.Size,
+		"is_public":       file.IsPublic,
+		"mime_type":       file.MimeType,
+		"extension":       file.Extension,
+		"user_id":         file.UserId,
+		"upload_status":   file.UploadStatus,
+		"updated_at":      file.UpdatedAt,
+		"expires_at":      file.ExpiresAt,
+		"notarization_tx": file.NotarizationTx,
+		"risk":            risk,
 	})
 }

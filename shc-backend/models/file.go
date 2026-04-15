@@ -18,16 +18,17 @@ const (
 
 type File struct {
 	gorm.Model
-	ID            uuid.UUID    `gorm:"type:uuid;default:gen_random_uuid()"  json:"id"`
-	UploadStatus  UploadStatus `gorm:"size:255;not null;default:not_started;" json:"upload_status"`
-	Name          string       `gorm:"size:255;not null;" json:"name"`
-	Size          uint         `gorm:"not null;" json:"size"`
-	IsPublic      bool         `gorm:"not null;default:false;" json:"is_public"`
-	MimeType      string       `gorm:"size:255;not null;" json:"mime_type"`
-	Extension     string       `gorm:"size:32;not null;" json:"extension"`
-	R2Path        string       `gorm:"size:255;not null;" json:"r2_path"`
-	ViewCount     uint         `gorm:"not null;default:0;" json:"read_count"`
-	DownloadCount uint         `gorm:"not null;default:0;" json:"download_count"`
-	UserId        uuid.UUID    `gorm:"not null;index:idx_user_id_file" json:"user_id"`
-	ExpiresAt     *time.Time   `gorm:"index" json:"expires_at"`
+	ID             uuid.UUID    `gorm:"type:uuid;default:gen_random_uuid()"  json:"id"`
+	UploadStatus   UploadStatus `gorm:"size:255;not null;default:not_started;" json:"upload_status"`
+	Name           string       `gorm:"size:255;not null;" json:"name"`
+	Size           uint         `gorm:"not null;" json:"size"`
+	IsPublic       bool         `gorm:"not null;default:false;" json:"is_public"`
+	MimeType       string       `gorm:"size:255;not null;" json:"mime_type"`
+	Extension      string       `gorm:"size:32;not null;" json:"extension"`
+	R2Path         string       `gorm:"size:255;not null;" json:"r2_path"`
+	ViewCount      uint         `gorm:"not null;default:0;" json:"read_count"`
+	DownloadCount  uint         `gorm:"not null;default:0;" json:"download_count"`
+	UserId         uuid.UUID    `gorm:"not null;index:idx_user_id_file" json:"user_id"`
+	ExpiresAt      *time.Time   `gorm:"index" json:"expires_at"`
+	NotarizationTx string       `gorm:"size:255;default:''" json:"notarization_tx"`
 }

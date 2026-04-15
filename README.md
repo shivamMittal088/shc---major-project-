@@ -39,6 +39,9 @@ This design provides:
 - Subscription plan limits (reads/writes/storage)
 - Redis-backed caching and rate limiting
 - Real-time risk scoring on shared-link access (`Low`, `Medium`, `High`)
+- **48-hour file expiry** — files are automatically deleted from storage and database after 48 hours; share page shows a live countdown and a dedicated expired-file screen on 410
+- **On-chain file hash notarization** — when a file finishes uploading, its SHA-256 is anchored to the Ethereum Sepolia testnet via a signed EIP-155 transaction (pure-Go, no CGo SDK); the tx hash is stored alongside the file and displayed as a "✓ Notarized on-chain" badge on the share page
+- **Public integrity verification endpoint** — anyone can call `GET /api/files/verify/:fileId` to recompute the SHA-256 and confirm it matches the on-chain calldata without logging in
 - Browser UI (Next.js) and terminal UI/CLI (Rust)
 
 ### Current Web UI Notes
@@ -62,7 +65,9 @@ This design provides:
 | AWS SDK v2 (S3 API) | `shc-backend` | Generates presigned URLs for Cloudflare R2 (S3-compatible storage) |
 | Cloudflare R2 | `shc-backend` | Durable object storage for file content with S3-compatible API |
 | JWT | `shc-backend`, clients | Stateless access token model for authenticated requests |
-| Cron (`robfig/cron`) | `shc-backend` | Scheduled maintenance tasks (plan resets, cleanup flows) |
+| Cron (`robfig/cron`) | `shc-backend` | Scheduled maintenance tasks (plan resets, expired-file cleanup) |
+| secp256k1/v4 (decred) | `shc-backend` | Pure-Go elliptic-curve signing for EIP-155 Ethereum transactions (no CGo) |
+| Ethereum Sepolia | `shc-backend` | Public testnet used for anchoring file SHA-256 hashes on-chain via JSON-RPC |
 | Rust | `shc-cli` | Safe and fast CLI implementation with strong type guarantees |
 | Clap | `shc-cli` | Command parsing and structured CLI UX |
 | Reqwest + Tokio | `shc-cli` | Async HTTP client/runtime for API communication and file transfers |
@@ -86,6 +91,7 @@ flowchart LR
 	API --> DB[(PostgreSQL)]
 	API --> REDIS[(Redis)]
 	API --> R2[(Cloudflare R2 Object Storage)]
+	API --> ETH[(Ethereum Sepolia JSON-RPC)]
 	WEB --> REDIS
 ```
 
@@ -241,6 +247,9 @@ uvicorn app.main:app --host 0.0.0.0 --port 8081
 | `RISK_ML_SERVICE_URL` | Optional | URL of the ML risk service (default: `http://localhost:8081`) |
 | `RISK_SERVICE_TIMEOUT_MS` | Optional | HTTP timeout for ML service calls in ms (default: `4000`) |
 | `RISK_SCORE_CACHE_TTL_SECONDS` | Optional | Redis TTL for cached risk scores in seconds (default: `300`) |
+| `ETH_RPC_URL` | Optional | Ethereum JSON-RPC endpoint (e.g. `https://sepolia.infura.io/v3/KEY`) — notarization disabled if unset |
+| `ETH_WALLET_PRIVATE_KEY` | Optional | 64-char hex private key (no `0x` prefix) used to sign notarization transactions |
+| `ETH_CHAIN_ID` | Optional | Ethereum chain ID — use `11155111` for Sepolia testnet |
 
 ### Required R2 CORS For Browser Uploads
 
@@ -414,13 +423,14 @@ Auth notes:
 | Method | Endpoint | Auth | Description |
 | --- | --- | --- | --- |
 | `GET` | `/api/files/` | Access token | List files (supports pagination/search via query params) |
-| `GET` | `/api/files/:fileId` | Access token | Get file metadata/download URL (includes `risk` object) |
-| `POST` | `/api/files/add` | Access token | Create file record and get upload URL |
-| `PATCH` | `/api/files/update-upload-status/:fileId` | Access token | Update upload status |
+| `GET` | `/api/files/:fileId` | Access token | Get file metadata/download URL — includes `expires_at`, `notarization_tx`, and `risk` object |
+| `POST` | `/api/files/add` | Access token | Create file record and get upload URL — sets 48-hour expiry |
+| `PATCH` | `/api/files/update-upload-status/:fileId` | Access token | Update upload status — triggers on-chain notarization asynchronously when status becomes `uploaded` |
 | `PATCH` | `/api/files/toggle-visibility/:fileId` | Access token | Toggle file visibility |
 | `PATCH` | `/api/files/increment-download-count/:fileId` | Access token | Increment file download count |
 | `PATCH` | `/api/files/rename/:id` | Access token | Rename file |
 | `DELETE` | `/api/files/remove/:id` | Access token | Delete file |
+| `GET` | `/api/files/verify/:fileId` | No | Recompute file SHA-256, compare to on-chain calldata — returns `sha256`, `notarization_tx`, `notarized`, `etherscan_url` |
 
 ## Risk Scoring
 

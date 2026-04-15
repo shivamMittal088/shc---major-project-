@@ -37,5 +37,6 @@ export type ShcFile = {
   created_at: Date;
   updated_at: Date;
   expires_at: string | null;
+  notarization_tx: string;
   risk?: RiskAnalysis | null;
 };

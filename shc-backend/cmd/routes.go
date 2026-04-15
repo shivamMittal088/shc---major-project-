@@ -87,4 +87,10 @@ func setupRoutes(app *fiber.App, as *services.AppService) {
 		return fh.RenameFile(c, as)
 	})
 
+	// Public verification endpoint — no auth required.
+	// Anyone can check that a file's SHA-256 is anchored on Ethereum.
+	app.Get("api/files/verify/:fileId", func(c fiber.Ctx) error {
+		return fh.VerifyNotarization(c, as)
+	})
+
 }

@@ -9,7 +9,7 @@ export default async function PdfPreview({
     <iframe
       title={title}
       src={link}
-      className="h-[calc(100vh-8rem)] w-full rounded-lg border border-slate-300 bg-white"
+      className="h-full w-full min-h-[600px] rounded-lg border border-slate-200 bg-white"
     />
   );
 }

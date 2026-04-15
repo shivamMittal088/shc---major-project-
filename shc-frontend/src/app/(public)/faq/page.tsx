@@ -180,6 +180,48 @@ const FAQS: FAQItem[] = [
     answer:
       "All file types are accepted. The risk engine applies type-specific analysis — for example, entropy checks are more meaningful for binaries, while keyword analysis applies to text-based documents.",
   },
+  {
+    question: "What is on-chain notarization and why does it matter?",
+    answer: (
+      <span>
+        When you upload a file, ShareCode computes its <strong>SHA-256 hash</strong> and submits it to the{" "}
+        <strong>Ethereum Sepolia testnet</strong> as a zero-ETH self-send transaction. The transaction&apos;s calldata contains{" "}
+        <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">shc:&lt;hex-hash&gt;</code>.
+        <br /><br />
+        Once mined, the hash is <strong>permanently and immutably recorded</strong> on a public blockchain. This means:
+        <ul className="list-disc list-inside mt-2 space-y-1">
+          <li>Anyone can independently verify the file has not been tampered with after upload.</li>
+          <li>The proof does not depend on trusting ShareCode — it lives on Ethereum forever.</li>
+          <li>If a file is later modified, its SHA-256 will differ from what&apos;s on-chain.</li>
+        </ul>
+        <br />
+        Files with a notarization show a green <strong>&ldquo;✓ Notarized on-chain&rdquo;</strong> badge on their share page linking to Etherscan.
+      </span>
+    ),
+  },
+  {
+    question: "How do I independently verify a file's notarization?",
+    answer: (
+      <span>
+        There are two ways:
+        <ol className="list-decimal list-inside mt-2 space-y-2">
+          <li>
+            <strong>Via the API</strong> — call{" "}
+            <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">GET /api/files/verify/&lt;file-id&gt;</code>.
+            The response includes the computed <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">sha256</code>,
+            the <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">notarization_tx</code> hash, and an Etherscan link.
+          </li>
+          <li>
+            <strong>Manually</strong> — open the Etherscan link for the transaction, click <em>More Details → Input Data</em>,
+            switch to <em>UTF-8</em> view. You will see{" "}
+            <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">shc:&lt;sha256-of-your-file&gt;</code>.
+            Hash the file yourself (e.g. <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">sha256sum file.pdf</code>)
+            and compare. If they match, the file is authentic.
+          </li>
+        </ol>
+      </span>
+    ),
+  },
 ];
 
 function FAQAccordion({ item, index }: { item: FAQItem; index: number }) {
@@ -261,7 +303,19 @@ export default function FAQPage() {
             Platform &amp; Usage
           </h2>
           <div className="space-y-3">
-            {FAQS.slice(8).map((item, i) => (
+            {FAQS.slice(8, 11).map((item, i) => (
+              <FAQAccordion key={i} item={item} index={i} />
+            ))}
+          </div>
+        </section>
+
+        {/* Blockchain */}
+        <section>
+          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4">
+            Blockchain &amp; Integrity
+          </h2>
+          <div className="space-y-3">
+            {FAQS.slice(11).map((item, i) => (
               <FAQAccordion key={i} item={item} index={i} />
             ))}
           </div>
