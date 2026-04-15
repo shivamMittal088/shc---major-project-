@@ -266,6 +266,37 @@ export default function FAQPage() {
             ))}
           </div>
         </section>
+
+        {/* Future Work */}
+        <section>
+          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4">
+            Future Work
+          </h2>
+          <div className="space-y-3">
+            <div className="border border-violet-200 dark:border-violet-500/20 rounded-xl overflow-hidden">
+              <div className="px-5 py-4 bg-violet-50 dark:bg-violet-500/5 flex items-start gap-3">
+                <span className="mt-0.5 text-violet-500 text-base shrink-0">◈</span>
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                    SHAP-Derived Rules Actually Applied (not just suggested)
+                  </p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Right now the purple &ldquo;suggested rules&rdquo; section shows Python code but never activates it.
+                    The plan is to build an <strong>admin review UI</strong> where a rule suggestion can be inspected,
+                    tested against recent files, and approved with one click.
+                    On approval, the rule gets written into the rule engine and deployed automatically —
+                    closing the loop between SHAP coverage gap analysis and the live heuristic system.
+                  </p>
+                  <div className="mt-2 bg-slate-800 dark:bg-slate-950 rounded px-3 py-2 text-[11px] font-mono text-violet-300 leading-relaxed">
+                    <span className="text-slate-500"># suggested by SHAP → pending admin approval</span><br />
+                    if features[&quot;size_mb&quot;] &gt; 45.2: score += 10<br />
+                    <span className="text-emerald-400"># ✓ approved → deployed to rule engine</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

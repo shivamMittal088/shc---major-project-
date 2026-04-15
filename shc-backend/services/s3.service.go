@@ -160,3 +160,23 @@ func NewS3Service() *S3Service {
 		StorageMode:     "object",
 	}
 }
+
+// DeleteObject removes an object from either local storage or the S3-compatible store.
+func (s *S3Service) DeleteObject(key string) error {
+	if s.IsLocalMode() {
+		fullPath, err := s.ResolveLocalPath(key)
+		if err != nil {
+			return err
+		}
+		if err := os.Remove(fullPath); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		return nil
+	}
+
+	_, err := s.S3.DeleteObject(context.Background(), &s3.DeleteObjectInput{
+		Bucket: aws.String(s.BucketName),
+		Key:    aws.String(key),
+	})
+	return err
+}

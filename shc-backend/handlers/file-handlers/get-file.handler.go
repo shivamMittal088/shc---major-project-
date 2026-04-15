@@ -34,6 +34,10 @@ func GetFile(c fiber.Ctx, as *services.AppService) error {
 		return &fiber.Error{Code: fiber.StatusForbidden, Message: "You are not allowed to access this file"}
 	}
 
+	if file.ExpiresAt != nil && file.ExpiresAt.Before(time.Now()) {
+		return &fiber.Error{Code: fiber.StatusGone, Message: "This file has expired and is no longer available"}
+	}
+
 	err = as.FileService.IncrementViewCount(fileId)
 
 	if err != nil {
@@ -86,6 +90,7 @@ func GetFile(c fiber.Ctx, as *services.AppService) error {
 		"user_id":       file.UserId,
 		"upload_status": file.UploadStatus,
 		"updated_at":    file.UpdatedAt,
+		"expires_at":    file.ExpiresAt,
 		"risk":          risk,
 	})
 }

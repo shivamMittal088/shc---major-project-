@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	m "github.com/aj-2000/shc-backend/models"
 	"github.com/aj-2000/shc-backend/services"
@@ -44,6 +45,20 @@ func AddFileToDb(c fiber.Ctx, as *services.AppService) error {
 		return fiber.NewError(fiber.StatusBadRequest, "file_name is required")
 	}
 
+	// Normalize MIME type: browsers sometimes report non-standard types for executables.
+	mimeType := strings.TrimSpace(body.MimeType)
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
+	}
+	// application/vnd.microsoft.portable-executable → application/x-msdownload
+	if mimeType == "application/vnd.microsoft.portable-executable" {
+		mimeType = "application/x-msdownload"
+	}
+	// Truncate to 255 chars as a safety cap.
+	if len(mimeType) > 255 {
+		mimeType = mimeType[:255]
+	}
+
 	fileSize := body.FileSize
 
 	ctx := context.Background()
@@ -54,7 +69,7 @@ func AddFileToDb(c fiber.Ctx, as *services.AppService) error {
 		res, err := as.S3Service.S3PresignClient.PresignPutObject(ctx, &s3.PutObjectInput{
 			Bucket:      aws.String(as.S3Service.BucketName),
 			Key:         key,
-			ContentType: aws.String(body.MimeType),
+			ContentType: aws.String(mimeType),
 			// TODO: add expiration
 		})
 
@@ -67,13 +82,15 @@ func AddFileToDb(c fiber.Ctx, as *services.AppService) error {
 
 	extension := strings.TrimPrefix(filepath.Ext(body.FileName), ".")
 
+	expiresAt := time.Now().Add(48 * time.Hour)
 	newFile := m.File{
 		Name:      body.FileName,
 		Size:      fileSize,
 		Extension: extension,
-		MimeType:  body.MimeType,
+		MimeType:  mimeType,
 		R2Path:    *key,
 		UserId:    userId,
+		ExpiresAt: &expiresAt,
 	}
 
 	f, err := as.FileService.CreateFile(&newFile)

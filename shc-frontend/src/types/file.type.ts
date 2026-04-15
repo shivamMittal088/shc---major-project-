@@ -36,5 +36,6 @@ export type ShcFile = {
   upload_status: string;
   created_at: Date;
   updated_at: Date;
+  expires_at: string | null;
   risk?: RiskAnalysis | null;
 };

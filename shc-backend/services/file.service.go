@@ -209,6 +209,41 @@ func (fs *FileService) DeleteAllNonUploadedFiles() error {
 	})
 }
 
+// DeleteExpiredFiles deletes files past their ExpiresAt time and returns their R2 paths for S3 cleanup.
+func (fs *FileService) DeleteExpiredFiles() ([]string, error) {
+	var files []m.File
+	now := time.Now()
+
+	if err := fs.dbService.Db.Where("expires_at IS NOT NULL AND expires_at < ? AND upload_status = ?", now, m.Uploaded).Find(&files).Error; err != nil {
+		return nil, err
+	}
+
+	if len(files) == 0 {
+		return nil, nil
+	}
+
+	r2Paths := make([]string, 0, len(files))
+	for _, f := range files {
+		r2Paths = append(r2Paths, f.R2Path)
+	}
+
+	ids := make([]string, 0, len(files))
+	for _, f := range files {
+		ids = append(ids, f.ID.String())
+	}
+
+	if err := fs.dbService.Db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("id IN ?", ids).Delete(&m.File{}).Error; err != nil {
+			return err
+		}
+		return fs.syncAllUserFileCountsTx(tx)
+	}); err != nil {
+		return nil, err
+	}
+
+	return r2Paths, nil
+}
+
 func (fs *FileService) SyncAllUserFileCounts() error {
 	return fs.dbService.Db.Transaction(func(tx *gorm.DB) error {
 		return fs.syncAllUserFileCountsTx(tx)
