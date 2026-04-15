@@ -200,6 +200,7 @@ def _build_xai(features: dict, rule_reasons: list) -> XAIExplanation | None:
         coverage_gap_score=raw.get("coverage_gap_score"),
         coverage_gap_detail=raw.get("coverage_gap_detail", []),
         suggested_rules=raw.get("suggested_rules", []),
+        suggested_rule_keys=raw.get("suggested_rule_keys", []),
     )
 
 

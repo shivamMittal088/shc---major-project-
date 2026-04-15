@@ -51,6 +51,7 @@ class XAIExplanation(BaseModel):
     coverage_gap_score: Optional[float]
     coverage_gap_detail: List[str]
     suggested_rules: List[str]
+    suggested_rule_keys: List[str]  # parallel to suggested_rules — the feature_key each rule covers
 
 
 class ScoreResponse(BaseModel):

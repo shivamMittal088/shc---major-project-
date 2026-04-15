@@ -66,15 +66,53 @@ export default function RiskBadge({ score, level, explanations, xai, fileId }: R
   const [ruleLoading, setRuleLoading] = useState<boolean[]>(
     () => Array(ruleCount).fill(false)
   );
+  // feature_keys of accepted rules — used to close coverage gaps live
+  const [acceptedFeatureKeys, setAcceptedFeatureKeys] = useState<Set<string>>(new Set());
+
+  // Extract feature_key from detail strings like "GAP [size_mb]: ..." or "COVERED [size_mb]: ..."
+  const parseDetailKey = (detail: string): string | null => {
+    const match = detail.match(/^\w+\s+\[([^\]]+)\]/);
+    return match ? match[1] : null;
+  };
+
+  // Recompute coverage gap detail with accepted rules treated as COVERED
+  const effectiveCoverageGapDetail = (xai?.coverage_gap_detail ?? []).map((detail) => {
+    if (!detail.startsWith("GAP")) return detail;
+    const key = parseDetailKey(detail);
+    if (key && acceptedFeatureKeys.has(key)) {
+      return detail.replace(/^GAP/, "COVERED").replace("has NO corresponding rule", "now has an accepted rule");
+    }
+    return detail;
+  });
+
+  const effectiveCoverageGapScore = (() => {
+    const riskDrivers = effectiveCoverageGapDetail.filter(
+      (d) => d.startsWith("GAP:") || d.startsWith("COVERED:")
+    );
+    if (riskDrivers.length === 0) return xai?.coverage_gap_score ?? null;
+    const gaps = riskDrivers.filter((d) => d.startsWith("GAP:"));
+    return gaps.length / riskDrivers.length;
+  })();
 
   const setRule = async (i: number, action: "accepted" | "rejected") => {
     const rule = xai!.suggested_rules![i];
+    const featureKey = xai!.suggested_rule_keys?.[i];
     setRuleLoading((prev) => prev.map((v, idx) => (idx === i ? true : v)));
     try {
       if (action === "accepted") {
         await acceptRule(rule, fileId);
+        if (featureKey) {
+          setAcceptedFeatureKeys((prev) => new Set([...prev, featureKey]));
+        }
       } else {
         await rejectRule(rule, fileId);
+        if (featureKey) {
+          setAcceptedFeatureKeys((prev) => {
+            const next = new Set(prev);
+            next.delete(featureKey);
+            return next;
+          });
+        }
       }
       setRuleStates((prev) => prev.map((s, idx) => (idx === i ? action : s)));
     } finally {
@@ -110,7 +148,10 @@ export default function RiskBadge({ score, level, explanations, xai, fileId }: R
       {xai && (xai.shap_top_features?.length ?? 0) > 0 && (
         <div className="border-t border-slate-100 dark:border-white/10 pt-2 space-y-2">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-            Model explanation (SHAP)
+            Model Explanation (SHAP)
+          </p>
+          <p className="text-[9px] text-slate-400">
+            Features ranked by how much they pushed the ML score up (red) or down (green)
           </p>
 
           <ResponsiveContainer
@@ -173,16 +214,21 @@ export default function RiskBadge({ score, level, explanations, xai, fileId }: R
             </BarChart>
           </ResponsiveContainer>
 
-          {/* ── Rules followed ── */}
+          {/* ── Rules followed (faithfulness) ── */}
           {(xai.faithfulness_detail?.filter((d) => d.startsWith("ALIGNED")).length ?? 0) > 0 && (
             <div className="border-t border-slate-100 dark:border-white/10 pt-2 space-y-1.5">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                  Rules followed
-                </p>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    Rule–Model Agreement
+                  </p>
+                  <p className="text-[9px] text-slate-400 mt-0.5">
+                    Hand-written rules that agree with what the ML model learned
+                  </p>
+                </div>
                 {xai.faithfulness_score != null && (
                   <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
                       xai.faithfulness_score >= 0.8
                         ? "bg-emerald-100 text-emerald-700"
                         : xai.faithfulness_score >= 0.5
@@ -190,7 +236,7 @@ export default function RiskBadge({ score, level, explanations, xai, fileId }: R
                         : "bg-red-100 text-red-700"
                     }`}
                   >
-                    {Math.round(xai.faithfulness_score * 100)}% faithful
+                    {Math.round(xai.faithfulness_score * 100)}%
                   </span>
                 )}
               </div>
@@ -235,34 +281,40 @@ export default function RiskBadge({ score, level, explanations, xai, fileId }: R
           )}
 
           {/* ── Rule coverage gap ── */}
-          {(xai.coverage_gap_detail?.length ?? 0) > 0 && (
+          {effectiveCoverageGapDetail.length > 0 && (
             <div className="border-t border-slate-100 dark:border-white/10 pt-2 space-y-1.5">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  Rule coverage
-                </p>
-                {xai.coverage_gap_score != null && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Rule Coverage Gap
+                  </p>
+                  <p className="text-[9px] text-slate-400 mt-0.5">
+                    ML model risk drivers that have no matching hand-written rule
+                  </p>
+                </div>
+                {effectiveCoverageGapScore != null && (
                   <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                      xai.coverage_gap_score <= 0.2
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors shrink-0 ${
+                      effectiveCoverageGapScore <= 0.2
                         ? "bg-emerald-100 text-emerald-700"
-                        : xai.coverage_gap_score <= 0.5
+                        : effectiveCoverageGapScore <= 0.5
                         ? "bg-amber-100 text-amber-700"
                         : "bg-red-100 text-red-700"
                     }`}
                   >
-                    {Math.round(xai.coverage_gap_score * 100)}% gap
+                    {Math.round(effectiveCoverageGapScore * 100)}% gap
                   </span>
                 )}
               </div>
               <ul className="space-y-1">
-                {xai.coverage_gap_detail!.map((detail, i) => {
+                {effectiveCoverageGapDetail.map((detail, i) => {
                   const isCovered = detail.startsWith("COVERED");
-                  const label = detail.replace(/^(COVERED|GAP):\s*/i, "");
+                  // Strip prefix like "GAP [key]:" or "COVERED [key]:" or legacy "GAP:" / "COVERED:"
+                  const label = detail.replace(/^(COVERED|GAP)(\s*\[[^\]]+\])?:\s*/i, "");
                   return (
                     <li key={i} className="flex items-start gap-1.5">
                       <span
-                        className={`mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full ${
+                        className={`mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full transition-colors ${
                           isCovered ? "bg-emerald-100" : "bg-amber-100"
                         }`}
                       >
@@ -273,7 +325,7 @@ export default function RiskBadge({ score, level, explanations, xai, fileId }: R
                         )}
                       </span>
                       <span
-                        className={`text-[10px] leading-tight ${
+                        className={`text-[10px] leading-tight transition-colors ${
                           isCovered
                             ? "text-emerald-600 dark:text-emerald-400"
                             : "text-amber-600 dark:text-amber-400"
@@ -291,12 +343,14 @@ export default function RiskBadge({ score, level, explanations, xai, fileId }: R
           {/* ── Suggested rules with Accept / Reject ── */}
           {(xai.suggested_rules?.length ?? 0) > 0 && (
             <div className="border-t border-slate-100 dark:border-white/10 pt-2 space-y-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500 dark:text-violet-400">
-                Suggested rules
-              </p>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500">
-                Auto-generated from coverage gap features. Accept to apply, reject to dismiss.
-              </p>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500 dark:text-violet-400">
+                  Suggested Rules to Close Gap
+                </p>
+                <p className="text-[9px] text-slate-400 mt-0.5">
+                  Auto-generated from uncovered ML features. Accept to record the rule and mark the gap closed.
+                </p>
+              </div>
               <ul className="space-y-2">
                 {xai.suggested_rules!.map((rule, i) => {
                   const state = ruleStates[i] ?? "pending";

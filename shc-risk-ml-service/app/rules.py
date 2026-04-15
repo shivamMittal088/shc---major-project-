@@ -77,3 +77,23 @@ def _dedupe(reasons: List[str]) -> List[str]:
 # ACCEPTED RULE [2026-04-15T06:59:31.489153+00:00]
 # file_id: 7651da5f-1a49-4d74-8881-5ee63955f15b
 # if features["size_mb"] > 0.06: score += 10  # SHAP-derived: large file increases risk
+
+
+# ACCEPTED RULE [2026-04-15T07:08:09.646313+00:00]
+# file_id: 7651da5f-1a49-4d74-8881-5ee63955f15b
+# if features["size_mb"] > 0.06: score += 10  # SHAP-derived: large file increases risk
+
+
+# ACCEPTED RULE [2026-04-15T07:11:35.869599+00:00]
+# file_id: 7651da5f-1a49-4d74-8881-5ee63955f15b
+# if features["size_mb"] > 0.06: score += 10  # SHAP-derived: large file increases risk
+
+
+# ACCEPTED RULE [2026-04-15T07:11:47.209663+00:00]
+# file_id: 7651da5f-1a49-4d74-8881-5ee63955f15b
+# if features["size_mb"] > 0.06: score += 10  # SHAP-derived: large file increases risk
+
+
+# ACCEPTED RULE [2026-04-15T07:14:51.505568+00:00]
+# file_id: 7651da5f-1a49-4d74-8881-5ee63955f15b
+# if features["size_mb"] > 0.06: score += 10  # SHAP-derived: large file increases risk

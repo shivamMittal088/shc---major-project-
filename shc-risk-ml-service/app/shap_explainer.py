@@ -165,7 +165,7 @@ class SHAPExplainer:
             top_features
         )
 
-        suggested_rules = _suggest_rules(top_features, features)
+        suggested_rules, suggested_rule_keys = _suggest_rules(top_features, features)
 
         return {
             "shap_top_features": top_features,
@@ -174,6 +174,7 @@ class SHAPExplainer:
             "coverage_gap_score": round(coverage_gap_score, 3),
             "coverage_gap_detail": coverage_gap_detail,
             "suggested_rules": suggested_rules,
+            "suggested_rule_keys": suggested_rule_keys,
         }
 
 
@@ -259,10 +260,10 @@ def _compute_coverage_gap(
         key = feat["feature_key"]
         label = feat["feature"]
         if key in RULE_COVERED_FEATURES:
-            detail.append(f"COVERED: '{label}' has a corresponding rule")
+            detail.append(f"COVERED [{key}]: '{label}' has a corresponding rule")
         else:
             gap_count += 1
-            detail.append(f"GAP: '{label}' has NO corresponding rule")
+            detail.append(f"GAP [{key}]: '{label}' has NO corresponding rule")
 
     score = float(gap_count) / float(len(risk_drivers))
     return score, detail
@@ -290,13 +291,21 @@ _RULE_TEMPLATES: Dict[str, str] = {
 def _suggest_rules(
     top_features: List[Dict],
     features: Dict[str, float],
-) -> List[str]:
+) -> Tuple[List[str], List[str]]:
     """
     For every risk-increasing top feature that has NO rule coverage,
     generate a concrete Python rule suggestion based on the observed
     feature value and SHAP direction.
+
+    Returns
+    -------
+    suggestions : List[str]
+        Python rule snippets, one per gap feature.
+    keys : List[str]
+        The feature_key each suggestion covers (parallel list).
     """
     suggestions: List[str] = []
+    keys: List[str] = []
     for feat in top_features:
         if feat["direction"] != "increases_risk":
             continue
@@ -309,9 +318,10 @@ def _suggest_rules(
         val = features.get(key, 0.0)
         try:
             suggestions.append(template.format(val=val))
+            keys.append(key)
         except (KeyError, ValueError):
             pass
-    return suggestions
+    return suggestions, keys
 
 
 def _empty_result() -> Dict:
@@ -322,4 +332,5 @@ def _empty_result() -> Dict:
         "coverage_gap_score": None,
         "coverage_gap_detail": [],
         "suggested_rules": [],
+        "suggested_rule_keys": [],
     }

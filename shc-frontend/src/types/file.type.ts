@@ -13,6 +13,7 @@ export type XAIExplanation = {
   coverage_gap_score: number | null;
   coverage_gap_detail: string[];
   suggested_rules: string[];
+  suggested_rule_keys: string[]; // parallel to suggested_rules — feature_key each rule covers
 };
 
 export type RiskAnalysis = {
