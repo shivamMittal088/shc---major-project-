@@ -11,6 +11,7 @@ import LoadingPreview from "./_components/LoadingPreview";
 import DownloadButton from "@/components/DownloadButton";
 import RiskBadge from "@/components/RiskBadge";
 import IntegrityVerifyButton from "@/components/IntegrityVerifyButton";
+import ModelMetricsPanel from "@/components/ModelMetricsPanel";
 
 export default async function ShcFile({
   params,
@@ -131,6 +132,7 @@ export default async function ShcFile({
               fileId={file.id}
             />
             <IntegrityVerifyButton fileId={file.id} riskScore={file.risk.risk_score} />
+            <ModelMetricsPanel />
           </aside>
         )}
       </div>

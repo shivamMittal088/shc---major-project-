@@ -94,6 +94,14 @@ def healthz() -> dict:
     return {"status": "ok", "model": MODEL_RUNTIME.describe(), "shap": shap_available}
 
 
+@app.get("/metrics")
+def get_metrics() -> dict:
+    metrics_path = PROJECT_ROOT / "models" / "metrics.json"
+    if not metrics_path.exists():
+        return {"error": "metrics.json not found — run training/train_models.py first"}
+    return json.loads(metrics_path.read_text(encoding="utf-8"))
+
+
 @app.post("/score", response_model=ScoreResponse)
 def score(payload: ScoreRequest) -> ScoreResponse:
     features, evidence, context = extract_features(payload)
