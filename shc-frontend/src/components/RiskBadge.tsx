@@ -100,12 +100,12 @@ export default function RiskBadge({ score, level, explanations, xai, fileId }: R
     setRuleLoading((prev) => prev.map((v, idx) => (idx === i ? true : v)));
     try {
       if (action === "accepted") {
-        await acceptRule(rule, fileId);
+        await acceptRule(rule, featureKey, fileId);
         if (featureKey) {
           setAcceptedFeatureKeys((prev) => new Set([...prev, featureKey]));
         }
       } else {
-        await rejectRule(rule, fileId);
+        await rejectRule(rule, featureKey, fileId);
         if (featureKey) {
           setAcceptedFeatureKeys((prev) => {
             const next = new Set(prev);

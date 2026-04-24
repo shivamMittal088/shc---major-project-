@@ -27,6 +27,11 @@ type RiskAnalyzeRequest struct {
 	TextContent       string   `json:"text_content,omitempty"`
 	KnownHash         string   `json:"known_hash,omitempty"`
 	FileContentBase64 string   `json:"file_content_base64,omitempty"`
+	// BlockchainIntegrity is the result of on-chain hash verification:
+	// "verified" — chain confirms file is untampered (reduces risk).
+	// "tampered" — chain hash mismatches current bytes (raises risk sharply).
+	// "unverified" or "" — no blockchain record yet (neutral).
+	BlockchainIntegrity string `json:"blockchain_integrity,omitempty"`
 }
 
 type SHAPFeatureContribution struct {
@@ -185,6 +190,7 @@ func normalizeRiskRequest(req RiskAnalyzeRequest) RiskAnalyzeRequest {
 	normalized.TextContent = strings.TrimSpace(normalized.TextContent)
 	normalized.KnownHash = strings.TrimSpace(normalized.KnownHash)
 	normalized.FileContentBase64 = strings.TrimSpace(normalized.FileContentBase64)
+	normalized.BlockchainIntegrity = strings.TrimSpace(normalized.BlockchainIntegrity)
 
 	cleanedLinks := make([]string, 0, len(normalized.ExternalLinks))
 	for _, externalLink := range normalized.ExternalLinks {

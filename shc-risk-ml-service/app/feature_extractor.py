@@ -92,6 +92,8 @@ def extract_features(request: ScoreRequest) -> Tuple[Dict[str, float], List[str]
         "unknown_upload_source": 1.0 if (request.upload_source or "").strip().lower() in {"", "unknown"} else 0.0,
         "known_bad_hash": known_bad_hash,
         "text_length": float(len(content_text)),
+        # Blockchain integrity: +1.0 = tampered, -1.0 = verified, 0.0 = unverified
+        "blockchain_integrity": _blockchain_integrity_feature(request.blockchain_integrity),
     }
 
     evidence: List[str] = []
@@ -101,6 +103,11 @@ def extract_features(request: ScoreRequest) -> Tuple[Dict[str, float], List[str]
         evidence.append("References suspicious external domain")
     if known_bad_hash > 0:
         evidence.append("Hash found in known-bad indicator list")
+    integrity = (request.blockchain_integrity or "").strip().lower()
+    if integrity == "verified":
+        evidence.append("Blockchain integrity verified: file matches its immutable on-chain hash")
+    elif integrity == "tampered":
+        evidence.append("Blockchain integrity check FAILED: file content does not match the on-chain hash")
 
     context = {
         "mime_type": inferred_mime,
@@ -223,3 +230,19 @@ def _load_known_bad_hashes() -> set[str]:
                 hashes.add(value)
     _CACHED_BAD_HASHES = hashes
     return _CACHED_BAD_HASHES
+
+
+def _blockchain_integrity_feature(value: str | None) -> float:
+    """
+    Encode blockchain_integrity as a signed float so both the rule engine
+    and the structured ML model can use it as a feature:
+      +1.0  = tampered  (strong risk-increasing signal)
+       0.0  = unverified (neutral)
+      -1.0  = verified   (risk-reducing signal)
+    """
+    v = (value or "").strip().lower()
+    if v == "tampered":
+        return 1.0
+    if v == "verified":
+        return -1.0
+    return 0.0

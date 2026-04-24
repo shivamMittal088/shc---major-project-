@@ -59,6 +59,7 @@ func main() {
 	// if it is not a child instance, we run the cron jobs ✅
 	if !fiber.IsChild() {
 		runCronJobs(service)
+		go backfillIntegrityHashes(service)
 	}
 
 	app.Listen(":" + os.Getenv("PORT"))

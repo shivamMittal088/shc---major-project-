@@ -3,6 +3,7 @@ package filehandlers
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"log"
 	"net/http"
@@ -49,8 +50,9 @@ func UpdateFileUploadStatus(c fiber.Ctx, as *services.AppService) error {
 		return err
 	}
 
-	// When a file finishes uploading, notarize its SHA-256 hash on-chain asynchronously.
-	if body.UploadStatus == m.Uploaded && as.BlockchainService.Enabled() {
+	// When a file finishes uploading, compute its SHA-256, store it as the
+	// integrity baseline, and optionally anchor on Ethereum.
+	if body.UploadStatus == m.Uploaded {
 		go notarizeUploadedFile(as, file)
 	}
 
@@ -62,8 +64,9 @@ func UpdateFileUploadStatus(c fiber.Ctx, as *services.AppService) error {
 	})
 }
 
-// notarizeUploadedFile fetches the uploaded file bytes, computes SHA-256, and
-// submits the hash to Ethereum. The DB is updated with the resulting tx hash.
+// notarizeUploadedFile computes SHA-256 of the file, stores it in the DB, and
+// marks integrity_status = "verified" (local baseline verification). When a
+// live Ethereum node is configured it also submits the hash on-chain.
 func notarizeUploadedFile(as *services.AppService, file *m.File) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
@@ -75,19 +78,36 @@ func notarizeUploadedFile(as *services.AppService, file *m.File) {
 	}
 
 	sum := sha256.Sum256(fileBytes)
+	hexHash := hex.EncodeToString(sum[:])
 
-	txHash, err := as.BlockchainService.NotarizeHash(ctx, sum[:])
-	if err != nil {
-		log.Printf("notarize: blockchain submission failed for %s: %v", file.ID, err)
+	// Always persist the hash — this is the local integrity baseline.
+	if err := as.FileService.SetSHA256Hash(file.ID, hexHash); err != nil {
+		log.Printf("notarize: sha256 db update failed for %s: %v", file.ID, err)
 		return
 	}
 
-	if err := as.FileService.SetNotarizationTx(file.ID, txHash); err != nil {
-		log.Printf("notarize: db update failed for %s: %v", file.ID, err)
+	// Mark verified immediately — the hash was computed from the just-uploaded
+	// bytes, so the file is in a known-good state right now.
+	if err := as.FileService.SetIntegrityStatus(file.ID, m.IntegrityVerified); err != nil {
+		log.Printf("notarize: integrity status update failed for %s: %v", file.ID, err)
 		return
 	}
 
-	log.Printf("notarize: file %s notarized — tx %s", file.ID, txHash)
+	log.Printf("notarize: file %s locally verified — sha256 %s", file.ID, hexHash)
+
+	// Optional: also anchor on Ethereum for immutable third-party proof.
+	if as.BlockchainService.Enabled() {
+		txHash, err := as.BlockchainService.NotarizeHash(ctx, sum[:])
+		if err != nil {
+			log.Printf("notarize: blockchain submission failed for %s: %v", file.ID, err)
+			return
+		}
+		if err := as.FileService.SetNotarizationTx(file.ID, txHash); err != nil {
+			log.Printf("notarize: tx db update failed for %s: %v", file.ID, err)
+			return
+		}
+		log.Printf("notarize: file %s also anchored on-chain — tx %s", file.ID, txHash)
+	}
 }
 
 // fetchFileBytes reads the file content from local disk or Cloudflare R2.

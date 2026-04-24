@@ -201,6 +201,24 @@ func (fs *FileService) SetNotarizationTx(fileId uuid.UUID, txHash string) error 
 	return fs.dbService.Db.Model(&m.File{}).Where("id = ?", fileId).Update("notarization_tx", txHash).Error
 }
 
+func (fs *FileService) SetIntegrityStatus(fileId uuid.UUID, status m.IntegrityStatus) error {
+	return fs.dbService.Db.Model(&m.File{}).Where("id = ?", fileId).Update("integrity_status", status).Error
+}
+
+func (fs *FileService) SetSHA256Hash(fileId uuid.UUID, hexHash string) error {
+	return fs.dbService.Db.Model(&m.File{}).Where("id = ?", fileId).Update("sha256_hash", hexHash).Error
+}
+
+// FindUploadedFilesWithoutHash returns all uploaded files that have no SHA-256
+// stored yet so a startup job can backfill them.
+func (fs *FileService) FindUploadedFilesWithoutHash() ([]m.File, error) {
+	var files []m.File
+	err := fs.dbService.Db.
+		Where("upload_status = ? AND (sha256_hash = '' OR sha256_hash IS NULL)", m.Uploaded).
+		Find(&files).Error
+	return files, err
+}
+
 func (fs *FileService) DeleteAllNonUploadedFiles() error {
 	oneDayAgo := time.Now().AddDate(0, 0, -1)
 

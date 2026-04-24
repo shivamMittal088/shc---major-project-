@@ -16,6 +16,8 @@ class ScoreRequest(BaseModel):
     text_content: Optional[str] = None
     known_hash: Optional[str] = None
     file_content_base64: Optional[str] = None
+    # "verified" = on-chain hash confirmed; "tampered" = mismatch; "unverified" = not checked
+    blockchain_integrity: Optional[str] = None
 
 
 class SHAPFeatureContribution(BaseModel):
@@ -70,4 +72,5 @@ class FeedbackRequest(BaseModel):
 
 class AcceptRuleRequest(BaseModel):
     rule: str  # The suggested rule snippet (Python expression string)
+    feature_key: Optional[str] = None  # The feature_key this rule covers (for DB + gap tracking)
     file_id: Optional[str] = None  # For audit trail only

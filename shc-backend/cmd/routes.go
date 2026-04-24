@@ -39,6 +39,20 @@ func setupRoutes(app *fiber.App, as *services.AppService) {
 		return middlewares.AuthMiddleware(c, as)
 	})
 
+	// Public verification endpoint — registered before the auth group so the
+	// ":fileId" wildcard inside the auth group does not intercept it.
+	app.Get("api/files/verify/:fileId", func(c fiber.Ctx) error {
+		return fh.VerifyNotarization(c, as)
+	})
+
+	// Demo-only endpoints for live tamper-detection demonstration.
+	app.Post("api/files/demo-tamper/:fileId", func(c fiber.Ctx) error {
+		return fh.DemoTamperFile(c, as)
+	})
+	app.Post("api/files/demo-restore/:fileId", func(c fiber.Ctx) error {
+		return fh.DemoRestoreFile(c, as)
+	})
+
 	users := api.Group("users")
 
 	users.Get("me", func(c fiber.Ctx) error {
@@ -86,11 +100,4 @@ func setupRoutes(app *fiber.App, as *services.AppService) {
 	files.Patch("rename/:id", func(c fiber.Ctx) error {
 		return fh.RenameFile(c, as)
 	})
-
-	// Public verification endpoint — no auth required.
-	// Anyone can check that a file's SHA-256 is anchored on Ethereum.
-	app.Get("api/files/verify/:fileId", func(c fiber.Ctx) error {
-		return fh.VerifyNotarization(c, as)
-	})
-
 }

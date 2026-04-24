@@ -96,6 +96,7 @@ class SHAPExplainer:
         features: Dict[str, float],
         rule_reasons: List[str],
         top_n: int = 6,
+        extra_covered_keys: Optional[set] = None,
     ) -> Dict:
         """
         Compute SHAP values for the given feature dict and compare them
@@ -162,10 +163,10 @@ class SHAPExplainer:
         )
 
         coverage_gap_score, coverage_gap_detail = _compute_coverage_gap(
-            top_features
+            top_features, extra_covered_keys
         )
 
-        suggested_rules, suggested_rule_keys = _suggest_rules(top_features, features)
+        suggested_rules, suggested_rule_keys = _suggest_rules(top_features, features, extra_covered_keys)
 
         return {
             "shap_top_features": top_features,
@@ -241,15 +242,17 @@ def _compute_faithfulness(
 
 def _compute_coverage_gap(
     top_features: List[Dict],
+    extra_covered_keys: Optional[set] = None,
 ) -> Tuple[float, List[str]]:
     """
     For the top risk-increasing SHAP features, check whether each one has a
     corresponding rule in the rule engine.
 
-    A high coverage gap means the model is relying heavily on features that
-    the rule engine does not address — explaining why rule-based explanations
-    diverge from the ML verdict.
+    ``extra_covered_keys`` is the set of feature keys whose rules were
+    previously accepted by a user — they are treated as COVERED even if
+    no built-in rule exists.
     """
+    effective_covered = RULE_COVERED_FEATURES | (extra_covered_keys or set())
     risk_drivers = [f for f in top_features if f["direction"] == "increases_risk"]
     if not risk_drivers:
         return 0.0, []
@@ -259,7 +262,7 @@ def _compute_coverage_gap(
     for feat in risk_drivers:
         key = feat["feature_key"]
         label = feat["feature"]
-        if key in RULE_COVERED_FEATURES:
+        if key in effective_covered:
             detail.append(f"COVERED [{key}]: '{label}' has a corresponding rule")
         else:
             gap_count += 1
@@ -291,6 +294,7 @@ _RULE_TEMPLATES: Dict[str, str] = {
 def _suggest_rules(
     top_features: List[Dict],
     features: Dict[str, float],
+    extra_covered_keys: Optional[set] = None,
 ) -> Tuple[List[str], List[str]]:
     """
     For every risk-increasing top feature that has NO rule coverage,
@@ -304,13 +308,14 @@ def _suggest_rules(
     keys : List[str]
         The feature_key each suggestion covers (parallel list).
     """
+    effective_covered = RULE_COVERED_FEATURES | (extra_covered_keys or set())
     suggestions: List[str] = []
     keys: List[str] = []
     for feat in top_features:
         if feat["direction"] != "increases_risk":
             continue
         key = feat["feature_key"]
-        if key in RULE_COVERED_FEATURES:
+        if key in effective_covered:
             continue  # already covered
         template = _RULE_TEMPLATES.get(key)
         if template is None:

@@ -10,6 +10,7 @@ import ShcFilePreview from "./_components/ShcFilePreview";
 import LoadingPreview from "./_components/LoadingPreview";
 import DownloadButton from "@/components/DownloadButton";
 import RiskBadge from "@/components/RiskBadge";
+import IntegrityVerifyButton from "@/components/IntegrityVerifyButton";
 
 export default async function ShcFile({
   params,
@@ -129,6 +130,7 @@ export default async function ShcFile({
               xai={file.risk.xai}
               fileId={file.id}
             />
+            <IntegrityVerifyButton fileId={file.id} riskScore={file.risk.risk_score} />
           </aside>
         )}
       </div>

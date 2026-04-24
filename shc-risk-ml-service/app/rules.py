@@ -51,6 +51,15 @@ def baseline_score(features: Dict[str, float], evidence: List[str]) -> Tuple[int
         score += 8
         reasons.append("Upload source is unknown")
 
+    # Blockchain integrity overrides: strong explicit signal that trumps ML uncertainty.
+    blockchain = features.get("blockchain_integrity", 0.0)
+    if blockchain > 0:
+        score += 55
+        reasons.append("Blockchain integrity check FAILED: file content does not match the on-chain hash (tampering detected)")
+    elif blockchain < 0:
+        score = max(0, score - 25)
+        reasons.append("Blockchain integrity verified: file matches its immutable on-chain hash")
+
     score = max(0, min(100, score))
     return score, _dedupe(reasons)[:6]
 
@@ -96,4 +105,28 @@ def _dedupe(reasons: List[str]) -> List[str]:
 
 # ACCEPTED RULE [2026-04-15T07:14:51.505568+00:00]
 # file_id: 7651da5f-1a49-4d74-8881-5ee63955f15b
+# if features["size_mb"] > 0.06: score += 10  # SHAP-derived: large file increases risk
+
+
+# ACCEPTED RULE [2026-04-15T07:21:33.075003+00:00]
+# file_id: 7651da5f-1a49-4d74-8881-5ee63955f15b
+# feature_key: unknown
+# if features["size_mb"] > 0.06: score += 10  # SHAP-derived: large file increases risk
+
+
+# ACCEPTED RULE [2026-04-15T07:21:43.068604+00:00]
+# file_id: 7651da5f-1a49-4d74-8881-5ee63955f15b
+# feature_key: unknown
+# if features["size_mb"] > 0.06: score += 10  # SHAP-derived: large file increases risk
+
+
+# ACCEPTED RULE [2026-04-15T07:38:51.603095+00:00]
+# file_id: 7651da5f-1a49-4d74-8881-5ee63955f15b
+# feature_key: unknown
+# if features["size_mb"] > 0.06: score += 10  # SHAP-derived: large file increases risk
+
+
+# ACCEPTED RULE [2026-04-24T13:49:06.897645+00:00]
+# file_id: efddb1cc-43b3-4f2c-905a-cc785c525eba
+# feature_key: unknown
 # if features["size_mb"] > 0.06: score += 10  # SHAP-derived: large file increases risk

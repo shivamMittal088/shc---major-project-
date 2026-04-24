@@ -27,6 +27,8 @@ FEATURE_ORDER = [
     "unknown_upload_source",
     "known_bad_hash",
     "text_length",
+    # +1.0 = tampered, 0.0 = unverified, -1.0 = verified
+    "blockchain_integrity",
 ]
 
 
@@ -79,6 +81,10 @@ def _generate_structured_dataset(seed: int, size: int) -> tuple[np.ndarray, np.n
         unknown_source = rng.binomial(1, 0.20)
         known_bad_hash = rng.binomial(1, 0.04)
         text_length = rng.integers(0, 18000)
+        # blockchain_integrity: most files are unverified; verified ones are less likely malicious
+        # +1.0 tampered, 0.0 unverified, -1.0 verified
+        bc_roll = rng.random()
+        blockchain_integrity = 1.0 if bc_roll < 0.03 else (-1.0 if bc_roll < 0.25 else 0.0)
 
         X[idx] = [
             is_exec,
@@ -94,6 +100,7 @@ def _generate_structured_dataset(seed: int, size: int) -> tuple[np.ndarray, np.n
             unknown_source,
             known_bad_hash,
             text_length,
+            blockchain_integrity,
         ]
 
     # Weighted synthetic risk label generation.
@@ -108,6 +115,7 @@ def _generate_structured_dataset(seed: int, size: int) -> tuple[np.ndarray, np.n
         + np.clip(X[:, 9] / 350.0, 0, 1) * 0.45
         + X[:, 10] * 0.3
         + X[:, 11] * 2.0
+        + X[:, 13] * 2.5   # blockchain_integrity: tampered=+2.5, verified=-2.5
     )
     probs = 1.0 / (1.0 + np.exp(-(linear - 2.2)))
     y = (rng.random(size=size) < probs).astype(np.int64)

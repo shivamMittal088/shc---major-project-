@@ -103,6 +103,18 @@ func scoreWithLocalRules(req RiskAnalyzeRequest) *RiskAnalyzeResponse {
 		reasons = append(reasons, "Hash matched a known malicious indicator")
 	}
 
+	// Blockchain integrity is a strong tamper signal — weight it heavily so the
+	// comparison between notarized and non-notarized files is meaningful.
+	switch req.BlockchainIntegrity {
+	case "tampered":
+		score += 60
+		reasons = append(reasons, "Blockchain integrity check FAILED: file content does not match the on-chain hash (tampering detected)")
+	case "verified":
+		// Reduce score; clamped to 0 below.
+		score -= 20
+		reasons = append(reasons, "Blockchain integrity verified: file matches its immutable on-chain hash")
+	}
+
 	entropy := estimateEntropy([]byte(req.FileContentBase64 + req.TextContent + req.FileName))
 	if entropy > 4.7 {
 		score += 18

@@ -238,6 +238,43 @@ func (bs *BlockchainService) sendRawTransaction(ctx context.Context, rawTx []byt
 	return txHash, nil
 }
 
+// VerifyOnChain fetches the transaction by hash, decodes its input data, and
+// confirms it contains "shc:" followed by the hex-encoded sha256Hash.
+// Returns (true, nil) when the on-chain record matches, (false, nil) when it
+// doesn't, and (false, err) when the chain cannot be reached or the tx is unknown.
+func (bs *BlockchainService) VerifyOnChain(ctx context.Context, txHash string, sha256Hash []byte) (bool, error) {
+	if !bs.Enabled() {
+		return false, errors.New("blockchain notarization is not configured")
+	}
+
+	result, err := bs.rpcCall(ctx, "eth_getTransactionByHash", txHash)
+	if err != nil {
+		return false, fmt.Errorf("eth_getTransactionByHash: %w", err)
+	}
+
+	// null result means the tx is not found (not yet mined or wrong hash).
+	if string(result) == "null" {
+		return false, fmt.Errorf("transaction %s not found on chain", txHash)
+	}
+
+	var tx struct {
+		Input string `json:"input"`
+	}
+	if err := json.Unmarshal(result, &tx); err != nil {
+		return false, fmt.Errorf("decode transaction: %w", err)
+	}
+
+	// input is "0x" + hex(calldata)
+	calldataHex := strings.TrimPrefix(tx.Input, "0x")
+	calldataBytes, err := hex.DecodeString(calldataHex)
+	if err != nil {
+		return false, fmt.Errorf("decode input hex: %w", err)
+	}
+
+	expected := "shc:" + hex.EncodeToString(sha256Hash)
+	return string(calldataBytes) == expected, nil
+}
+
 // ── Crypto ────────────────────────────────────────────────────────────────────
 
 func ethKeccak256(data []byte) []byte {

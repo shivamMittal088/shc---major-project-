@@ -1,10 +1,13 @@
 package filehandlers
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"time"
 
+	m "github.com/aj-2000/shc-backend/models"
 	"github.com/aj-2000/shc-backend/services"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -14,7 +17,9 @@ import (
 //  1. Looks up the file record (must be public or the caller owns it).
 //  2. Fetches the raw file bytes from storage.
 //  3. Computes the SHA-256 on-the-fly.
-//  4. Returns the hash, the stored tx hash, and an Etherscan link so anyone
+//  4. Queries the Ethereum chain to confirm the on-chain calldata contains
+//     "shc:<sha256>" — returning hash_match:true/false as a verifiable result.
+//  5. Returns the hash, the stored tx hash, and an Etherscan link so anyone
 //     can independently confirm the hash was anchored on-chain.
 func VerifyNotarization(c fiber.Ctx, as *services.AppService) error {
 	fileIdString := c.Params("fileId")
@@ -49,16 +54,57 @@ func VerifyNotarization(c fiber.Ctx, as *services.AppService) error {
 		etherscanURL = fmt.Sprintf("https://sepolia.etherscan.io/tx/%s", notarizationTx)
 	}
 
-	// notarized=true means the stored tx hash exists.
-	// hash_match is not verifiable here without querying the chain; callers
-	// compare computedHash against the calldata of the on-chain tx themselves.
+	// Perform integrity verification.
+	// Priority 1: on-chain verification via Ethereum (immutable, third-party proof).
+	// Priority 2: local hash comparison against the SHA-256 stored at upload time.
+	hashMatch := false
+	chainVerified := false
+	chainError := ""
+	verificationMethod := "none"
+	newIntegrityStatus := file.IntegrityStatus
+
+	if notarizationTx != "" && as.BlockchainService.Enabled() {
+		// On-chain path
+		ctx, cancel := context.WithTimeout(c.Context(), 15*time.Second)
+		defer cancel()
+		match, verifyErr := as.BlockchainService.VerifyOnChain(ctx, notarizationTx, sum[:])
+		if verifyErr != nil {
+			chainError = verifyErr.Error()
+		} else {
+			hashMatch = match
+			chainVerified = true
+			verificationMethod = "blockchain"
+			if match {
+				newIntegrityStatus = m.IntegrityVerified
+			} else {
+				newIntegrityStatus = m.IntegrityTampered
+			}
+			_ = as.FileService.SetIntegrityStatus(file.ID, newIntegrityStatus)
+		}
+	} else if file.SHA256Hash != "" {
+		// Local fallback: compare current bytes against hash stored at upload time.
+		hashMatch = (computedHash == file.SHA256Hash)
+		chainVerified = true
+		verificationMethod = "local"
+		if hashMatch {
+			newIntegrityStatus = m.IntegrityVerified
+		} else {
+			newIntegrityStatus = m.IntegrityTampered
+		}
+		_ = as.FileService.SetIntegrityStatus(file.ID, newIntegrityStatus)
+	}
+
 	return c.JSON(fiber.Map{
-		"file_id":         file.ID,
-		"file_name":       file.Name,
-		"sha256":          computedHash,
-		"notarization_tx": notarizationTx,
-		"notarized":       notarizationTx != "",
-		"etherscan_url":   etherscanURL,
-		"instructions":    "Open etherscan_url, go to the Input Data tab, decode as UTF-8. It should contain 'shc:' followed by the sha256 value above.",
+		"file_id":             file.ID,
+		"file_name":           file.Name,
+		"sha256":              computedHash,
+		"notarization_tx":     notarizationTx,
+		"notarized":           notarizationTx != "",
+		"hash_match":          hashMatch,
+		"chain_verified":      chainVerified,
+		"chain_error":         chainError,
+		"verification_method": verificationMethod,
+		"integrity_status":    newIntegrityStatus,
+		"etherscan_url":       etherscanURL,
 	})
 }

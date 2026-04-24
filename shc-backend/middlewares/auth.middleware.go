@@ -12,6 +12,9 @@ var publicFileReadRoute = regexp.MustCompile(`^/api/files/[0-9a-fA-F-]+$`)
 var publicFileDownloadRoute = regexp.MustCompile(`^/api/files/download/[0-9a-fA-F-]+$`)
 var publicFileUploadRoute = regexp.MustCompile(`^/api/files/upload/[0-9a-fA-F-]+$`)
 var publicDownloadCountRoute = regexp.MustCompile(`^/api/files/increment-download-count/[0-9a-fA-F-]+$`)
+var publicVerifyRoute = regexp.MustCompile(`^/api/files/verify/[0-9a-fA-F-]+$`)
+var publicDemoTamperRoute = regexp.MustCompile(`^/api/files/demo-tamper/[0-9a-fA-F-]+$`)
+var publicDemoRestoreRoute = regexp.MustCompile(`^/api/files/demo-restore/[0-9a-fA-F-]+$`)
 
 func isSemiPublicRoute(method string, path string) bool {
 	if method == fiber.MethodGet && publicFileReadRoute.MatchString(path) {
@@ -27,6 +30,18 @@ func isSemiPublicRoute(method string, path string) bool {
 	}
 
 	if method == fiber.MethodPatch && publicDownloadCountRoute.MatchString(path) {
+		return true
+	}
+
+	if method == fiber.MethodGet && publicVerifyRoute.MatchString(path) {
+		return true
+	}
+
+	if method == fiber.MethodPost && publicDemoTamperRoute.MatchString(path) {
+		return true
+	}
+
+	if method == fiber.MethodPost && publicDemoRestoreRoute.MatchString(path) {
 		return true
 	}
 

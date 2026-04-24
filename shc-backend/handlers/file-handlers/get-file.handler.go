@@ -69,14 +69,15 @@ func GetFile(c fiber.Ctx, as *services.AppService) error {
 	}
 
 	risk, _ := as.RiskScoringService.Analyze(services.RiskAnalyzeRequest{
-		FileID:            file.ID.String(),
-		FileURL:           downloadUrl,
-		FileName:          file.Name,
-		MimeType:          file.MimeType,
-		FileSize:          uint64(file.Size),
-		UploadSource:      "internal",
-		ShareFrequency:    uint64(file.ViewCount),
-		DownloadFrequency: uint64(file.DownloadCount),
+		FileID:              file.ID.String(),
+		FileURL:             downloadUrl,
+		FileName:            file.Name,
+		MimeType:            file.MimeType,
+		FileSize:            uint64(file.Size),
+		UploadSource:        "internal",
+		ShareFrequency:      uint64(file.ViewCount),
+		DownloadFrequency:   uint64(file.DownloadCount),
+		BlockchainIntegrity: string(file.IntegrityStatus),
 	})
 
 	return c.JSON(fiber.Map{
