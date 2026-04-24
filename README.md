@@ -431,6 +431,8 @@ Auth notes:
 | `PATCH` | `/api/files/rename/:id` | Access token | Rename file |
 | `DELETE` | `/api/files/remove/:id` | Access token | Delete file |
 | `GET` | `/api/files/verify/:fileId` | No | Recompute file SHA-256, compare to on-chain calldata — returns `sha256`, `notarization_tx`, `notarized`, `etherscan_url` |
+| `POST` | `/api/files/demo-tamper/:fileId` | No | **Demo only** — appends a null byte to the physical file and sets `integrity_status=tampered`; use to demonstrate live tamper detection |
+| `POST` | `/api/files/demo-restore/:fileId` | No | **Demo only** — removes the appended byte and sets `integrity_status=verified`; restores the file to its original state |
 
 ## Risk Scoring
 
