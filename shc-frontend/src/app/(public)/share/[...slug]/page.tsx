@@ -8,10 +8,9 @@ import NotAuthorized from "./_components/NotAuthorized";
 import FileExpired from "./_components/FileExpired";
 import ShcFilePreview from "./_components/ShcFilePreview";
 import LoadingPreview from "./_components/LoadingPreview";
+import AnalysisPage from "./_components/AnalysisPage";
+import IntegrityPage from "./_components/IntegrityPage";
 import DownloadButton from "@/components/DownloadButton";
-import RiskBadge from "@/components/RiskBadge";
-import IntegrityVerifyButton from "@/components/IntegrityVerifyButton";
-import ModelMetricsPanel from "@/components/ModelMetricsPanel";
 
 export default async function ShcFile({
   params,
@@ -19,11 +18,11 @@ export default async function ShcFile({
   params: { slug: string[] };
 }) {
   const fileId = params.slug[0];
+  const tab = params.slug[1]; // undefined = preview | "analysis" | "integrity"
   const { file, error, status } = await getShcFile(fileId);
+
   if (error !== undefined || file === undefined) {
-    if (status === 410) {
-      return <FileExpired />;
-    }
+    if (status === 410) return <FileExpired />;
     return <NotAuthorized />;
   }
 
@@ -33,10 +32,13 @@ export default async function ShcFile({
       ? "Expired"
       : `Expires ${expiresAt.fromNow()}`
     : null;
+  const isExpiringSoon = expiresAt ? expiresAt.diff(dayjs(), "hour") < 4 : false;
 
-  const isExpiringSoon = expiresAt
-    ? expiresAt.diff(dayjs(), "hour") < 4
-    : false;
+  const previewHref = `/share/${fileId}`;
+  const analysisHref = `/share/${fileId}/analysis`;
+  const integrityHref = `/share/${fileId}/integrity`;
+  const isAnalysis = tab === "analysis";
+  const isIntegrity = tab === "integrity";
 
   return (
     <div className="w-full h-full flex flex-col bg-slate-50">
@@ -106,36 +108,59 @@ export default async function ShcFile({
               />
             </div>
           </div>
+
+          {/* ── Tabs ── */}
+          <div className="flex gap-1 -mb-px">
+            <a
+              href={previewHref}
+              className={`px-4 py-2 text-xs font-medium border-b-2 transition-colors ${
+                !isAnalysis && !isIntegrity
+                  ? "border-slate-900 text-slate-900"
+                  : "border-transparent text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              Preview
+            </a>
+            {file.risk && (
+              <a
+                href={analysisHref}
+                className={`px-4 py-2 text-xs font-medium border-b-2 transition-colors ${
+                  isAnalysis
+                    ? "border-slate-900 text-slate-900"
+                    : "border-transparent text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                Risk Analysis
+              </a>
+            )}
+            <a
+              href={integrityHref}
+              className={`px-4 py-2 text-xs font-medium border-b-2 transition-colors ${
+                isIntegrity
+                  ? "border-slate-900 text-slate-900"
+                  : "border-transparent text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              Integrity
+            </a>
+          </div>
         </div>
       </nav>
 
-      {/* ── Body: preview + optional risk sidebar ── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Preview */}
-        <main className="flex-1 overflow-auto p-4">
-          <Suspense fallback={<LoadingPreview />}>
-            <ShcFilePreview file={file} />
-          </Suspense>
-        </main>
-
-        {/* Risk sidebar */}
-        {file.risk && (
-          <aside className="w-80 shrink-0 border-l border-slate-200 bg-white overflow-y-auto p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-3">
-              Risk Analysis
-            </p>
-            <RiskBadge
-              score={file.risk.risk_score}
-              level={file.risk.risk_level}
-              explanations={file.risk.explanations}
-              xai={file.risk.xai}
-              fileId={file.id}
-            />
-            <IntegrityVerifyButton fileId={file.id} riskScore={file.risk.risk_score} />
-            <ModelMetricsPanel />
-          </aside>
+      {/* ── Body ── */}
+      <main className="flex-1 overflow-auto">
+        {isAnalysis ? (
+          <AnalysisPage file={file} />
+        ) : isIntegrity ? (
+          <IntegrityPage file={file} />
+        ) : (
+          <div className="h-full p-4">
+            <Suspense fallback={<LoadingPreview />}>
+              <ShcFilePreview file={file} />
+            </Suspense>
+          </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

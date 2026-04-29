@@ -7,6 +7,12 @@ import AudioPreview from "./AudioPreview";
 import ImagePreview from "./ImagePreview";
 import PdfPreview from "./PdfPreview";
 import VideoPreview from "./VideoPreview";
+import DocsPreview from "./DocsPreview";
+
+const DOCX_EXTENSIONS = new Set(["docx"]);
+const DOCX_MIME_TYPES = new Set([
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
 
 export default async function ShcFilePreview({ file }: { file: ShcFile }) {
   const link = file.download_url;
@@ -49,8 +55,15 @@ export default async function ShcFilePreview({ file }: { file: ShcFile }) {
     return <ImagePreview name={file.name} link={link} />;
   }
 
-  if (file.mime_type === "application/pdf" || file.extension === "pdf") {
+  if (file.mime_type === "application/pdf" || normalizedExtension === "pdf") {
     return <PdfPreview link={link} title={file.name} />;
+  }
+
+  if (
+    DOCX_EXTENSIONS.has(normalizedExtension) ||
+    DOCX_MIME_TYPES.has(file.mime_type)
+  ) {
+    return <DocsPreview link={link} title={file.name} />;
   }
 
   if (file.mime_type.startsWith("video")) {

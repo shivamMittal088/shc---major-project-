@@ -482,7 +482,119 @@ The backend caches results in Redis keyed by SHA-256 of the request payload. If 
 
 ---
 
-# 13. Contributing Guidelines
+# 13. FAQ
+
+**Q: How does blockchain file integrity verification work?**
+
+When a file finishes uploading, the backend computes a SHA-256 hash of the file content and embeds it as calldata in an Ethereum Sepolia transaction signed with EIP-155. The transaction hash (`notarization_tx`) is stored in the database. On verification, the backend re-reads the physical file, recomputes the hash, decodes the original calldata from the on-chain transaction via JSON-RPC, and compares them. A match means the file has not been altered since upload.
+
+---
+
+**Q: Can I verify a file without logging in?**
+
+Yes. `GET /api/files/verify/:fileId` is a public endpoint — no access token is required. The share page exposes a "Verify Integrity" button that calls this endpoint directly from the browser.
+
+---
+
+**Q: What does the risk score (0–100) mean?**
+
+The score is produced by a hybrid pipeline:
+1. A rule-based engine (built-in Go) checks extension risk, MIME mismatch, known-bad SHA-256 hashes, and download-count anomalies.
+2. A Random Forest model (14 structured features: entropy, file size, extension score, MIME flag, etc.) produces a probability.
+3. A Logistic Regression + TF-IDF model checks file name / text content for phishing language patterns.
+
+The three signals are blended into a 0–100 score. `Low` is 0–39, `Medium` is 40–69, `High` is 70–100. The score is cached in Redis for 5 minutes (configurable via `RISK_SCORE_CACHE_TTL_SECONDS`).
+
+---
+
+**Q: Why does the risk score change after a file is tampered?**
+
+The tamper demo (`POST /api/files/demo-tamper/:fileId`) appends a null byte to the physical file and sets `integrity_status=tampered` in the database. Because the risk scoring pipeline factors in `integrity_status` as a feature, a tampered file scores higher. The Redis risk cache is also flushed on tamper/restore so the next verification reflects the new state immediately.
+
+---
+
+**Q: What is the difference between the per-file risk score and the model evaluation metrics?**
+
+The **risk score** is unique per file — it reflects how risky *that specific file* is based on its features.
+
+The **model evaluation metrics** (Accuracy, Precision, Recall, F1, ROC-AUC) are global — they describe how reliable the ML model is across a held-out test set of 640 samples. They do not change per file. Think of them the same way as a diagnostic test's known sensitivity/specificity: the test result for each patient is individual, but the test's accuracy is a fixed property of the instrument.
+
+---
+
+**Q: How was the Random Forest model evaluated? Why not 100%?**
+
+The structured dataset (3,200 samples, 14 features) was split 80/20 (stratified) into a training set and a held-out test set. Metrics are computed exclusively on the test set (640 samples the model never saw during training). 5-fold cross-validation (CV F1 = 89.8% ± 0.6%) confirms the model generalises across folds.
+
+The model does **not** reach 100% because features like file entropy and size have genuine overlap between benign and malicious files — for example, a legitimate compressed archive and an encrypted malware payload both have high entropy. This is expected, realistic behaviour.
+
+---
+
+**Q: Why doesn't the text model (Logistic Regression + TF-IDF) show accuracy metrics?**
+
+TF-IDF achieves trivial 100% separation on any controlled vocabulary dataset where you authored the templates, because the word patterns are deterministic and non-overlapping. This is a known limitation of benchmarking NLP models on synthetic corpora — it would look impressive but would be meaningless. In deployment, the text model operates on real file names and extracted metadata where vocabulary is unpredictable. It serves as a secondary heuristic filter after the RF model, not as a standalone classifier.
+
+---
+
+**Q: What happens if the ML service is offline?**
+
+The backend automatically falls back to the built-in Go rule engine. Risk scoring continues to work at reduced fidelity (rules-only, no ML probability signal). The `model_used` field in the risk response changes from `hybrid-rules-rf-nlp` to `rules-fallback`. No user-facing error is shown.
+
+---
+
+**Q: Does local storage mode work without Cloudflare R2?**
+
+Yes. Set `SHC_LOCAL_STORAGE_DIR=.storage` in the backend `.env`. Files are stored under `shc-backend/.storage/` in a flat directory tree per user. Presigned URLs are replaced by direct backend-served download routes. This is intended for local development and demos — not production use.
+
+---
+
+**Q: How do I run the tamper detection demo?**
+
+1. Open the share page for any uploaded file: `http://localhost:3000/share/<fileId>`
+2. Click **"Verify Integrity"** — the result should show "Hash Match ✓ Verified"
+3. Click **"✗ Tamper File"** (red button) — the backend appends a byte to the physical file
+4. The verify result automatically re-runs and shows "Tampered ✗" with a changed risk score
+5. Click **"✓ Restore File"** (green button) to revert to the original state
+
+All three operations are public endpoints — no login is required for a live demo.
+
+---
+
+**Q: What blockchains / networks are supported for notarization?**
+
+Currently Ethereum Sepolia testnet only. Set `ETH_RPC_URL`, `ETH_WALLET_PRIVATE_KEY`, and `ETH_CHAIN_ID=11155111` in the backend `.env`. Notarization is silently skipped if `ETH_RPC_URL` is unset — all other features continue to work. Switching to mainnet or another EVM chain requires only changing `ETH_RPC_URL` and `ETH_CHAIN_ID`.
+
+---
+
+**Q: How do files expire?**
+
+Files have a 48-hour TTL set at upload time (`expires_at` column). A cron job runs periodically, deletes expired files from storage (R2 or local), and removes their database records. The share page shows a live countdown timer. Accessing an expired file's share page returns HTTP 410 (Gone) with a dedicated expired-file screen.
+
+---
+
+**Q: How does the OTP login flow work?**
+
+1. Client sends `POST /auth/otp` with an email address — the backend generates a 6-digit OTP and sends it via SMTP.
+2. Client sends `POST /auth/login` with the email + OTP — the backend verifies the OTP, creates a session, and returns a short-lived access token and a longer-lived refresh token.
+3. When the access token expires, the client calls `GET /auth/refresh-token` with the refresh token to get a new pair.
+4. `DELETE /auth/logout` invalidates the current session server-side.
+
+No password is ever stored — authentication is purely OTP-based.
+
+---
+
+**Q: How are subscription limits enforced?**
+
+Each user has a subscription plan with daily read/write quotas and a storage cap. The backend checks these limits on every file upload and download. If a limit is exceeded the request is rejected with HTTP 429. Quotas reset daily via a cron job. The current plan and usage are returned in `GET /api/users/me`.
+
+---
+
+**Q: Can the CLI and web app be used at the same time?**
+
+Yes. Both authenticate against the same backend using the same JWT token model. The CLI stores tokens locally in a config file (`~/.shc/config.json` or equivalent). Files uploaded via the web are visible in the CLI with `shc list`, and vice versa.
+
+---
+
+# 14. Contributing Guidelines
 
 1. Fork the repository.
 2. Create a branch: `git checkout -b feat/your-feature-name`.

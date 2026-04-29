@@ -65,7 +65,7 @@ export default function IntegrityVerifyButton({ fileId, riskScore }: { fileId: s
   const isBusy = state === "loading" || demoAction !== "";
 
   return (
-    <div className="mt-4 border-t border-slate-100 pt-4 space-y-3">
+    <div className="mt-4 border-t border-slate-100 pt-4 space-y-3 w-full min-w-0">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
         Integrity Verification
       </p>
@@ -126,25 +126,29 @@ export default function IntegrityVerifyButton({ fileId, riskScore }: { fileId: s
               <div className={`rounded p-2 ${state === "tampered" ? "bg-red-100" : "bg-emerald-100"}`}>
                 <div className="text-[10px] font-semibold uppercase tracking-wider opacity-60 mb-1.5">Risk Score Comparison</div>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-16 text-[10px] font-semibold text-emerald-700 shrink-0">✓ Verified</span>
-                    <div className="flex-1 h-4 rounded-full bg-white/60 overflow-hidden">
-                      <div className="h-full rounded-full bg-emerald-500 transition-all"
-                        style={{ width: `${Math.min(100, Math.max(0, state === "verified" ? riskScore : Math.max(0, riskScore - 25)))}%` }} />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-semibold text-emerald-700">✓ Verified</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-4 rounded-full bg-white/60 overflow-hidden">
+                        <div className="h-full rounded-full bg-emerald-500 transition-all"
+                          style={{ width: `${Math.min(100, Math.max(0, state === "verified" ? riskScore : Math.max(0, riskScore - 25)))}%` }} />
+                      </div>
+                      <span className="w-14 text-right font-bold text-emerald-700 shrink-0">
+                        {state === "verified" ? riskScore : Math.max(0, riskScore - 25)}/100
+                      </span>
                     </div>
-                    <span className="w-10 text-right font-bold text-emerald-700">
-                      {state === "verified" ? riskScore : Math.max(0, riskScore - 25)}/100
-                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-16 text-[10px] font-semibold text-red-700 shrink-0">✗ Tampered</span>
-                    <div className="flex-1 h-4 rounded-full bg-white/60 overflow-hidden">
-                      <div className="h-full rounded-full bg-red-500 transition-all"
-                        style={{ width: `${Math.min(100, state === "tampered" ? riskScore : Math.min(100, riskScore + 55))}%` }} />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-semibold text-red-700">✗ Tampered</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-4 rounded-full bg-white/60 overflow-hidden">
+                        <div className="h-full rounded-full bg-red-500 transition-all"
+                          style={{ width: `${Math.min(100, state === "tampered" ? riskScore : Math.min(100, riskScore + 55))}%` }} />
+                      </div>
+                      <span className="w-14 text-right font-bold text-red-700 shrink-0">
+                        {state === "tampered" ? riskScore : Math.min(100, riskScore + 55)}/100
+                      </span>
                     </div>
-                    <span className="w-10 text-right font-bold text-red-700">
-                      {state === "tampered" ? riskScore : Math.min(100, riskScore + 55)}/100
-                    </span>
                   </div>
                 </div>
                 <div className="mt-1.5 text-[10px] opacity-60">

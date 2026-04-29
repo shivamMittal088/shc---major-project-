@@ -81,12 +81,17 @@ async function fetchWrapper(
   }
 
   if (!response.ok) {
-    throw new ApiError(
-      // TODO: get pretty error message from backend and display them as it is.
-      (await response.text()) ||
-        `Failed to fetch ${url} with status ${response.status}`,
-      response.status
-    );
+    const text = await response.text();
+    let message = `Failed to fetch ${url} with status ${response.status}`;
+    if (text) {
+      try {
+        const json = JSON.parse(text);
+        message = json.message || json.error || text;
+      } catch {
+        message = text;
+      }
+    }
+    throw new ApiError(message, response.status);
   }
 
   return response.json();

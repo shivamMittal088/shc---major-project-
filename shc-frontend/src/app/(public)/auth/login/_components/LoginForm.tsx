@@ -51,12 +51,16 @@ export default function LoginForm() {
   const isSubmittingOtp = loginForm.formState.isSubmitting;
 
   const onLoginFormSubmit = async (data: LoginFormType) => {
-    await toast.promise(submitLoginForm(data), {
-      loading: "Submitting OTP...",
-      success: "Logged in successfully",
-      error: "Something went wrong",
-    });
-    router.push("/");
+    try {
+      await toast.promise(submitLoginForm(data), {
+        loading: "Submitting OTP...",
+        success: "Logged in successfully",
+        error: (err) => err?.message ?? "Something went wrong",
+      });
+      router.push("/");
+    } catch {
+      // error already shown by toast
+    }
   };
 
   const onClickSendOtpButton = async () => {
@@ -73,9 +77,9 @@ export default function LoginForm() {
             setOtpStatus("sent");
             return "OTP sent successfully";
           },
-          error: () => {
+          error: (err) => {
             setOtpStatus("error");
-            return "Something went wrong";
+            return err?.message ?? "Something went wrong";
           },
         }
       );

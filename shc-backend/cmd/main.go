@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"time"
 
@@ -62,5 +63,7 @@ func main() {
 		go backfillIntegrityHashes(service)
 	}
 
-	app.Listen(":" + os.Getenv("PORT"))
+	if err := app.Listen(":" + os.Getenv("PORT")); err != nil {
+		log.Fatalf("server error: %v", err)
+	}
 }
