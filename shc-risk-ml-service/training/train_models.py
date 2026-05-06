@@ -13,6 +13,7 @@ from sklearn.metrics import (
     classification_report,
     confusion_matrix,
     f1_score,
+    matthews_corrcoef,
     precision_score,
     recall_score,
     roc_auc_score,
@@ -80,6 +81,15 @@ def main() -> None:
         "cv_f1_std": round(float(cv_scores.std()), 4),
         "confusion_matrix": confusion_matrix(y_test, y_pred).tolist(),
         "class_report": classification_report(y_test, y_pred, output_dict=True),
+        "matthews_corrcoef": round(float(matthews_corrcoef(y_test, y_pred)), 4),
+        "false_positive_rate": round(
+            float(confusion_matrix(y_test, y_pred)[0, 1] / confusion_matrix(y_test, y_pred)[0].sum()), 4
+        ),
+        "threshold": 0.5,
+        "feature_importances": {
+            name: round(float(imp), 4)
+            for name, imp in zip(FEATURE_ORDER, structured_model.feature_importances_)
+        },
     }
 
     # Re-train on full dataset for production model
@@ -107,6 +117,11 @@ def main() -> None:
         "f1_score": round(float(f1_score(text_y_test, text_pred)), 4),
         "roc_auc": round(float(roc_auc_score(text_y_test, text_prob)), 4),
         "confusion_matrix": confusion_matrix(text_y_test, text_pred).tolist(),
+        "matthews_corrcoef": round(float(matthews_corrcoef(text_y_test, text_pred)), 4),
+        "false_positive_rate": round(
+            float(confusion_matrix(text_y_test, text_pred)[0, 1] / confusion_matrix(text_y_test, text_pred)[0].sum()), 4
+        ),
+        "threshold": 0.5,
     }
 
     # Re-train text model on full dataset
@@ -141,6 +156,9 @@ def main() -> None:
     print(f"  F1       : {structured_metrics['f1_score']}")
     print(f"  ROC-AUC  : {structured_metrics['roc_auc']}")
     print(f"  CV F1    : {structured_metrics['cv_f1_mean']} ± {structured_metrics['cv_f1_std']}")
+    print(f"  MCC      : {structured_metrics['matthews_corrcoef']}")
+    print(f"  FPR      : {structured_metrics['false_positive_rate']}")
+    print(f"  Top features: { {k: v for k, v in sorted(structured_metrics['feature_importances'].items(), key=lambda x: -x[1])[:5]} }")
     print()
     print("=== Text Model (Logistic Regression + TF-IDF) ===")
     print(f"  Accuracy : {text_metrics['accuracy']}")
@@ -148,6 +166,8 @@ def main() -> None:
     print(f"  Recall   : {text_metrics['recall']}")
     print(f"  F1       : {text_metrics['f1_score']}")
     print(f"  ROC-AUC  : {text_metrics['roc_auc']}")
+    print(f"  MCC      : {text_metrics['matthews_corrcoef']}")
+    print(f"  FPR      : {text_metrics['false_positive_rate']}")
 
 
 def _generate_structured_dataset(seed: int, size: int) -> tuple[np.ndarray, np.ndarray]:
