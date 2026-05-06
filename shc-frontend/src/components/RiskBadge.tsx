@@ -187,10 +187,13 @@ export default function RiskBadge({ score, level, explanations, xai, fileId }: R
               <ReferenceLine x={0} stroke="#cbd5e1" strokeWidth={1} />
               <Tooltip
                 cursor={{ fill: "rgba(148,163,184,0.08)" }}
-                formatter={(value: number) => [
-                  (value > 0 ? "+" : "") + value.toFixed(4),
-                  "SHAP value",
-                ]}
+                formatter={(value) => {
+                  const num = Number(value) || 0;
+                  return [
+                    (num > 0 ? "+" : "") + num.toFixed(4),
+                    "SHAP value",
+                  ];
+                }}
                 contentStyle={{
                   fontSize: 11,
                   background: "#1e293b",

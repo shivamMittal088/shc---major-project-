@@ -13,6 +13,9 @@ type ModelMetrics = {
   cv_f1_std?: number;
   confusion_matrix: [[number, number], [number, number]];
   model: string;
+  train_size?: number;
+  test_size?: number;
+  n_features?: number;
 };
 
 type Metrics = {

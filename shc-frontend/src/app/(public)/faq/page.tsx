@@ -35,7 +35,7 @@ const FAQS: FAQItem[] = [
       <span>
         Every uploaded file is analysed in two ways:
         <ol className="list-decimal list-inside mt-2 space-y-1">
-          <li><strong>Rule-based engine</strong> — fast, human-written heuristics (e.g. "flag executable extensions", "flag known-bad hashes").</li>
+          <li><strong>Rule-based engine</strong> — fast, human-written heuristics (e.g. &ldquo;flag executable extensions&rdquo;, &ldquo;flag known-bad hashes&rdquo;).</li>
           <li><strong>ML model</strong> — a Random Forest classifier trained on 3,200 synthetic samples with 13 features. It assigns a probability score.</li>
         </ol>
         <span className="block mt-2">Both scores are combined into a final 0–100 risk score. Below 30 = Safe, 30–70 = Suspicious, above 70 = Dangerous.</span>

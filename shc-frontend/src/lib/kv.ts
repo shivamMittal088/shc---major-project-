@@ -1,5 +1,21 @@
 import { Redis } from "ioredis";
-const redis = new Redis(process.env.REDIS_URL!);
+
+// Reuse a single Redis client across hot reloads / serverless invocations to
+// avoid exhausting the connection pool (Vercel spawns many short-lived
+// Node.js function instances; a fresh TCP connection per import is fatal).
+const globalForRedis = globalThis as unknown as { __shcRedis?: Redis };
+
+const redis =
+  globalForRedis.__shcRedis ??
+  new Redis(process.env.REDIS_URL!, {
+    lazyConnect: false,
+    maxRetriesPerRequest: 3,
+    enableOfflineQueue: false,
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForRedis.__shcRedis = redis;
+}
 
 export namespace KV {
   export async function get(key: string) {
