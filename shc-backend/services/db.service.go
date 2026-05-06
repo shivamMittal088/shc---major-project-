@@ -37,7 +37,19 @@ func isEnvTrue(key string) bool {
 }
 
 func NewDbService() *DbService {
-	DBURL := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s", os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"), os.Getenv("DB_NAME"), os.Getenv("DB_PASSWORD"))
+	sslMode := strings.TrimSpace(os.Getenv("DB_SSLMODE"))
+	if sslMode == "" {
+		sslMode = "disable"
+	}
+
+	DBURL := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=%s password=%s",
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_NAME"),
+		sslMode,
+		os.Getenv("DB_PASSWORD"),
+	)
 
 	Db, err := gorm.Open(postgres.Open(DBURL), &gorm.Config{})
 	if err != nil {

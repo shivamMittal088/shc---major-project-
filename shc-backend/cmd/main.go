@@ -46,9 +46,15 @@ func main() {
 		Level: compress.LevelBestCompression,
 	}))
 
+	allowedOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if allowedOrigins == "" {
+		allowedOrigins = "http://localhost, http://localhost:3000, http://127.0.0.1:3000, https://shc-app.vercel.app, https://shc.ajaysharma.dev, https://ajaysharma.dev"
+	}
+
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost, http://localhost:3000, http://127.0.0.1:3000, https://shc-app.vercel.app, https://shc.ajaysharma.dev, https://ajaysharma.dev",
-		AllowHeaders: "Origin, Content-Type, Accept",
+		AllowOrigins:     allowedOrigins,
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowCredentials: true,
 	}))
 
 	setupRoutes(app, service)
