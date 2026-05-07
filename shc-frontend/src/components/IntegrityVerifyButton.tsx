@@ -124,58 +124,6 @@ export default function IntegrityVerifyButton({ fileId, riskScore }: { fileId: s
               <div className="font-mono text-[10px] break-all leading-relaxed">{result.sha256}</div>
             </div>
 
-            {/* Risk score comparison */}
-            {riskScore !== undefined && (() => {
-              // Symmetric model: tampering adds a fixed +55 penalty.
-              // If state is tampered, riskScore already includes that penalty,
-              // so the "clean" hypothetical is riskScore - 55.
-              // If state is verified, the "tampered" hypothetical is riskScore + 55.
-              const TAMPER_PENALTY = 55;
-              const cleanScore = state === "tampered"
-                ? Math.max(0, riskScore - TAMPER_PENALTY)
-                : riskScore;
-              const tamperedScore = state === "tampered"
-                ? riskScore
-                : Math.min(100, riskScore + TAMPER_PENALTY);
-
-              return (
-              <div className={`rounded p-2 ${state === "tampered" ? "bg-red-100" : "bg-emerald-100"}`}>
-                <div className="text-[10px] font-semibold uppercase tracking-wider opacity-60 mb-1.5">Risk Score Comparison</div>
-                <div className="space-y-2">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] font-semibold text-emerald-700">✓ Verified</span>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-4 rounded-full bg-white/60 overflow-hidden">
-                        <div className="h-full rounded-full bg-emerald-500 transition-all"
-                          style={{ width: `${cleanScore}%` }} />
-                      </div>
-                      <span className="w-14 text-right font-bold text-emerald-700 shrink-0">
-                        {cleanScore}/100
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] font-semibold text-red-700">✗ Tampered</span>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-4 rounded-full bg-white/60 overflow-hidden">
-                        <div className="h-full rounded-full bg-red-500 transition-all"
-                          style={{ width: `${tamperedScore}%` }} />
-                      </div>
-                      <span className="w-14 text-right font-bold text-red-700 shrink-0">
-                        {tamperedScore}/100
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-1.5 text-[10px] opacity-60">
-                  {state === "verified"
-                    ? `Integrity verified → clean baseline ${cleanScore}/100. Tampering would raise it to ${tamperedScore}/100 (+${TAMPER_PENALTY} pts).`
-                    : `Tampering detected → score raised to ${tamperedScore}/100 (+${TAMPER_PENALTY} pts). Clean baseline would be ${cleanScore}/100.`}
-                </div>
-              </div>
-              );
-            })()}
-
             {result.etherscan_url && (
               <div className={`rounded p-2 ${state === "tampered" ? "bg-red-100" : "bg-emerald-100"}`}>
                 <div className="text-[10px] font-semibold uppercase tracking-wider opacity-60 mb-0.5">On-chain Proof</div>

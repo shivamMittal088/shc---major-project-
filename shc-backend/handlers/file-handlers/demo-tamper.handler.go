@@ -1,6 +1,9 @@
 package filehandlers
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"io"
 	"os"
 
 	m "github.com/aj-2000/shc-backend/models"
@@ -83,9 +86,61 @@ func DemoRestoreFile(c fiber.Ctx, as *services.AppService) error {
 		return fiber.NewError(fiber.StatusBadRequest, "File is empty; nothing to restore")
 	}
 
-	// Truncate the last byte (the null byte added by DemoTamperFile).
-	if err := os.Truncate(fullPath, info.Size()-1); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Could not truncate file")
+	// Restore by truncating trailing bytes one at a time until the SHA-256
+	// matches the baseline stored at upload. This handles the case where the
+	// user clicked Tamper multiple times and the file has multiple junk bytes
+	// appended. We cap iterations to a sensible maximum so we never destroy a
+	// file that was modified for some other reason.
+	const maxTrim = 64
+	currentSize := info.Size()
+	baseline := file.SHA256Hash
+	matched := false
+
+	if baseline == "" {
+		// No baseline recorded — fall back to the legacy behavior of removing
+		// just the last byte.
+		if err := os.Truncate(fullPath, currentSize-1); err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "Could not truncate file")
+		}
+	} else {
+		for i := 0; i < maxTrim && currentSize > 0; i++ {
+			// Compute current SHA-256.
+			f, err := os.Open(fullPath)
+			if err != nil {
+				return fiber.NewError(fiber.StatusInternalServerError, "Could not open file")
+			}
+			h := sha256.New()
+			if _, err := io.Copy(h, f); err != nil {
+				f.Close()
+				return fiber.NewError(fiber.StatusInternalServerError, "Could not hash file")
+			}
+			f.Close()
+
+			if hex.EncodeToString(h.Sum(nil)) == baseline {
+				matched = true
+				break
+			}
+
+			// Trim one trailing byte and try again.
+			currentSize--
+			if err := os.Truncate(fullPath, currentSize); err != nil {
+				return fiber.NewError(fiber.StatusInternalServerError, "Could not truncate file")
+			}
+		}
+
+		if !matched {
+			// Final hash check after the loop (covers the case where the very
+			// last truncation produced the matching state).
+			f, err := os.Open(fullPath)
+			if err == nil {
+				h := sha256.New()
+				_, _ = io.Copy(h, f)
+				f.Close()
+				if hex.EncodeToString(h.Sum(nil)) == baseline {
+					matched = true
+				}
+			}
+		}
 	}
 
 	// Restore DB integrity status to verified.
