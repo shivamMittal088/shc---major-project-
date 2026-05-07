@@ -76,6 +76,52 @@ func (bs *BlockchainService) Enabled() bool {
 	return bs != nil && bs.enabled
 }
 
+// Address returns the wallet's Ethereum address (empty string when disabled).
+func (bs *BlockchainService) Address() string {
+	if bs == nil {
+		return ""
+	}
+	return bs.address
+}
+
+// ChainID returns the configured chain ID (0 when disabled).
+func (bs *BlockchainService) ChainID() int64 {
+	if !bs.Enabled() {
+		return 0
+	}
+	return bs.chainID.Int64()
+}
+
+// GetBalance returns the wallet's current balance in wei. Use weiToEthString
+// to format it as ETH for display.
+func (bs *BlockchainService) GetBalance(ctx context.Context) (*big.Int, error) {
+	if !bs.Enabled() {
+		return nil, errors.New("blockchain notarization is not configured")
+	}
+	result, err := bs.rpcCall(ctx, "eth_getBalance", bs.address, "latest")
+	if err != nil {
+		return nil, err
+	}
+	var hexStr string
+	if err := json.Unmarshal(result, &hexStr); err != nil {
+		return nil, err
+	}
+	balance := new(big.Int)
+	balance.SetString(strings.TrimPrefix(hexStr, "0x"), 16)
+	return balance, nil
+}
+
+// WeiToEthString converts a wei amount to a human-readable ETH string with up
+// to 6 decimal places (e.g. "0.049821").
+func WeiToEthString(wei *big.Int) string {
+	if wei == nil {
+		return "0"
+	}
+	ethFloat := new(big.Float).SetInt(wei)
+	ethFloat.Quo(ethFloat, big.NewFloat(1e18))
+	return ethFloat.Text('f', 6)
+}
+
 // NotarizeHash sends a 0-ETH self-send Ethereum transaction containing
 // "shc:" + hex(sha256Hash) as calldata, and returns the resulting tx hash.
 func (bs *BlockchainService) NotarizeHash(ctx context.Context, sha256Hash []byte) (string, error) {

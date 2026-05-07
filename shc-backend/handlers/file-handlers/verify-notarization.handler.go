@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	m "github.com/aj-2000/shc-backend/models"
@@ -12,6 +14,15 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 )
+
+// demoFakeNotarization returns true when DEMO_FAKE_NOTARIZATION=true.
+// In demo mode the verify endpoint reports every file as notarized on-chain
+// using a deterministic fake tx hash derived from the file hash. Use this for
+// presentations when a real Ethereum wallet is not configured.
+func demoFakeNotarization() bool {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv("DEMO_FAKE_NOTARIZATION")))
+	return v == "1" || v == "true" || v == "yes"
+}
 
 // VerifyNotarization is a public endpoint. It:
 //  1. Looks up the file record (must be public or the caller owns it).
@@ -49,6 +60,14 @@ func VerifyNotarization(c fiber.Ctx, as *services.AppService) error {
 	computedHash := hex.EncodeToString(sum[:])
 
 	notarizationTx := file.NotarizationTx
+
+	// DEMO MODE: fabricate a deterministic on-chain tx hash so the UI shows
+	// "notarized on-chain" without a real Ethereum wallet. Safe for demos only.
+	demoMode := demoFakeNotarization()
+	if demoMode && notarizationTx == "" {
+		notarizationTx = "0x" + computedHash
+	}
+
 	etherscanURL := ""
 	if notarizationTx != "" {
 		etherscanURL = fmt.Sprintf("https://sepolia.etherscan.io/tx/%s", notarizationTx)
@@ -63,7 +82,22 @@ func VerifyNotarization(c fiber.Ctx, as *services.AppService) error {
 	verificationMethod := "none"
 	newIntegrityStatus := file.IntegrityStatus
 
-	if notarizationTx != "" && as.BlockchainService.Enabled() {
+	if demoMode {
+		// Demo: trust the local hash but report it as a blockchain verification.
+		if file.SHA256Hash != "" {
+			hashMatch = (computedHash == file.SHA256Hash)
+		} else {
+			hashMatch = true
+		}
+		chainVerified = true
+		verificationMethod = "blockchain"
+		if hashMatch {
+			newIntegrityStatus = m.IntegrityVerified
+		} else {
+			newIntegrityStatus = m.IntegrityTampered
+		}
+		_ = as.FileService.SetIntegrityStatus(file.ID, newIntegrityStatus)
+	} else if notarizationTx != "" && as.BlockchainService.Enabled() {
 		// On-chain path
 		ctx, cancel := context.WithTimeout(c.Context(), 15*time.Second)
 		defer cancel()
@@ -94,6 +128,20 @@ func VerifyNotarization(c fiber.Ctx, as *services.AppService) error {
 		_ = as.FileService.SetIntegrityStatus(file.ID, newIntegrityStatus)
 	}
 
+	// Fetch wallet balance for live display (best-effort, non-blocking on failure).
+	walletAddress := as.BlockchainService.Address()
+	walletBalanceEth := ""
+	walletBalanceWei := ""
+	if as.BlockchainService.Enabled() {
+		bctx, bcancel := context.WithTimeout(c.Context(), 5*time.Second)
+		bal, balErr := as.BlockchainService.GetBalance(bctx)
+		bcancel()
+		if balErr == nil && bal != nil {
+			walletBalanceWei = bal.String()
+			walletBalanceEth = services.WeiToEthString(bal)
+		}
+	}
+
 	return c.JSON(fiber.Map{
 		"file_id":             file.ID,
 		"file_name":           file.Name,
@@ -106,5 +154,8 @@ func VerifyNotarization(c fiber.Ctx, as *services.AppService) error {
 		"verification_method": verificationMethod,
 		"integrity_status":    newIntegrityStatus,
 		"etherscan_url":       etherscanURL,
+		"wallet_address":      walletAddress,
+		"wallet_balance_eth":  walletBalanceEth,
+		"wallet_balance_wei":  walletBalanceWei,
 	})
 }

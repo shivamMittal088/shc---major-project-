@@ -8,7 +8,29 @@ SHC is a full-stack file sharing platform with three deliverables in one reposit
 - `shc-frontend`: Next.js web app for browser-based file management
 - `shc-cli`: Rust command-line tool for terminal-first file operations
 - `shc-risk-ml-service`: Python ML microservice for risk scoring and threat explanations
+cd d:\projects\shc\shc-risk-ml-service
+.\start.ps1
 
+Get-FileHash -Algorithm SHA256 "C:\path\to\your\file.pdf"
+
+(.venv) PS D:\projects\shc> Get-FileHash -Algorithm SHA256 "C:\Users\USER\Downloads\shc researchpaper.docx"
+
+Algorithm       Hash                                                         
+---------       ----                                                         
+SHA256          06DFA0C2AD68515F5FDB1ACE4AC4C3A874E0FA8F73E2B8AE298318988D...
+
+
+
+RFC 4122
+8f3c1a52-4b7d-4e9f-9a02-7c1e6d8b2f10
+└──────┘ └──┘ └──┘ └──┘ └──────────┘
+   8     4    4    4        12      = 32 hex chars = 128 bits
+UUID = Universally Unique Identifier — a 128-bit number written as 32 hex digits in a 8-4-4-4-12 pattern:
+
+
+
+
+(.venv) PS D:\projects\shc> 
 ---
 
 # 2. Project Overview

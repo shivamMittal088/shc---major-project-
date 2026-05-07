@@ -191,7 +191,7 @@ export default function FileListItem({
           <p className="font-medium text-slate-500">Updated</p>
           <p className="mt-0.5 flex items-center gap-1.5 text-slate-200">
             <Sparkles className="h-3 w-3 text-fuchsia-300" />
-            {dayjs(file.updated_at).fromNow()}
+            <span suppressHydrationWarning>{dayjs(file.updated_at).fromNow()}</span>
           </p>
         </div>
       </div>

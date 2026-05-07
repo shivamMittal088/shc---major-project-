@@ -2,6 +2,8 @@ package filehandlers
 
 import (
 	"net/url"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/aj-2000/shc-backend/services"
@@ -11,6 +13,12 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 )
+
+// demoNotarizationEnabled returns true when DEMO_FAKE_NOTARIZATION=true.
+func demoNotarizationEnabled() bool {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv("DEMO_FAKE_NOTARIZATION")))
+	return v == "1" || v == "true" || v == "yes"
+}
 
 func GetFile(c fiber.Ctx, as *services.AppService) error {
 	fileIdString := c.Params("fileId")
@@ -80,6 +88,17 @@ func GetFile(c fiber.Ctx, as *services.AppService) error {
 		BlockchainIntegrity: string(file.IntegrityStatus),
 	})
 
+	// DEMO MODE: fabricate a deterministic on-chain tx hash so the UI shows
+	// "✓ Notarized on-chain" without a real Ethereum wallet.
+	notarizationTx := file.NotarizationTx
+	if notarizationTx == "" && demoNotarizationEnabled() {
+		if file.SHA256Hash != "" {
+			notarizationTx = "0x" + file.SHA256Hash
+		} else {
+			notarizationTx = "0xdemo" + strings.ReplaceAll(file.ID.String(), "-", "")
+		}
+	}
+
 	return c.JSON(fiber.Map{
 		"download_url":    downloadUrl,
 		"id":              file.ID,
@@ -92,7 +111,7 @@ func GetFile(c fiber.Ctx, as *services.AppService) error {
 		"upload_status":   file.UploadStatus,
 		"updated_at":      file.UpdatedAt,
 		"expires_at":      file.ExpiresAt,
-		"notarization_tx": file.NotarizationTx,
+		"notarization_tx": notarizationTx,
 		"risk":            risk,
 	})
 }
